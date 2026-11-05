@@ -9,13 +9,23 @@ android {
 
     defaultConfig {
         applicationId = "com.example.shutdownprank"
-        minSdk = 21
+        minSdk = 26
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
     }
 
+    signingConfigs {
+        create("fixed") {
+            storeFile = file("release.keystore")
+            storePassword = "paraklik123"
+            keyAlias = "paraklik"
+            keyPassword = "paraklik123"
+        }
+    }
+
     buildTypes {
+        debug { signingConfig = signingConfigs.getByName("fixed") }
         release { isMinifyEnabled = false }
     }
     compileOptions {

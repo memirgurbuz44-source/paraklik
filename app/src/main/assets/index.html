@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="tr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Para Klik</title>
+<style>
+:root{--bg:#16181c;--card:#20242b;--text:#eceff4;--muted:#9aa3b2;--line:#2f353f;--ac:#ffb938;--ac2:#e39a10;--ok:#3ccf7a;--bad:#ff6b6b}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;user-select:none;-webkit-user-select:none}
+.wrap{max-width:720px;margin:0 auto;padding:12px}
+.top{text-align:center}.coins{font-size:clamp(32px,9vw,48px);font-weight:800}
+.stats{color:var(--muted);font-size:13px}
+.badge{display:inline-block;background:var(--ac);color:#222;border-radius:99px;padding:2px 10px;font-size:12px;font-weight:700;margin:4px 3px 0}
+.stage{position:relative;display:flex;justify-content:center;padding:14px 0 18px;min-height:270px}
+#btn{width:min(55vw,240px);aspect-ratio:1;border-radius:50%;border:0;font-size:clamp(70px,18vw,100px);line-height:1;background:radial-gradient(circle at 35% 30%,#ffe08a,var(--ac) 55%,var(--ac2));box-shadow:0 10px 0 var(--ac2),0 18px 30px rgba(0,0,0,.4);touch-action:manipulation}
+#btn.down{transform:translateY(8px);box-shadow:0 2px 0 var(--ac2)}
+#combo{position:absolute;top:0;left:0;right:0;text-align:center;font-weight:800;color:var(--ac);min-height:22px}
+.pop{position:absolute;font-weight:800;color:var(--ok);pointer-events:none;animation:up .8s forwards;font-size:22px}
+.pop.crit{color:var(--bad);font-size:30px}
+@keyframes up{to{opacity:0;transform:translateY(-70px)}}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px}
+.tabs button{flex:0 0 auto;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:99px;padding:8px 13px;font:inherit;font-weight:600}
+.tabs button.on{background:var(--ac);color:#222;border-color:var(--ac)}
+.list{display:grid;grid-template-columns:1fr;gap:9px;margin-top:8px}
+@media(min-width:560px){.list{grid-template-columns:1fr 1fr}}
+.item{display:flex;align-items:center;gap:11px;text-align:left;width:100%;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:11px;color:var(--text);font:inherit}
+.item:disabled{opacity:.45}
+.ico{font-size:28px;width:42px;text-align:center}.info{flex:1;min-width:0}.name{font-weight:700}.desc,.own,.small{font-size:12px;color:var(--muted)}.cost{font-weight:800;white-space:nowrap}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:8px}
+.panel h3{margin:0 0 8px;font-size:16px}
+.row{display:flex;gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}
+.row .grow{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+input{font:inherit;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--text);min-width:0}
+.btn2{font:inherit;font-weight:700;border:0;border-radius:10px;padding:8px 12px;background:var(--ac);color:#222}
+.btn2.g{background:none;border:1px solid var(--line);color:var(--muted)}
+.me{color:var(--ac);font-weight:800}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;background:#000;color:#fff;padding:10px 16px;border-radius:12px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:9}
+#toast.on{opacity:1}
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+</head><body>
+<div class="wrap">
+<div class="top"><div class="coins"><span id="coins">0</span> 🪙 <button class="btn2 g" id="mute">🔊</button></div>
+<div class="stats"><span id="pc"></span> · <span id="ps"></span></div><div id="badges"></div></div>
+<div class="stage" id="stage"><div id="combo"></div><button id="btn">🪙</button></div>
+<div class="tabs" id="tabs"></div><div id="content"></div>
+<div style="text-align:center;margin:18px"><button class="btn2 g" id="reset">Oyunu sıfırla</button></div>
+</div><div id="toast"></div>
+<script>
+// ===== FIREBASE AYARI: Firebase konsolundan aldığın bilgileri buraya yaz =====
+var FIREBASE_CONFIG={apiKey:"AIzaSyBpMru83lvCtjVoDCWLZYl30IPbNT11UN4",authDomain:"paraklik.firebaseapp.com",projectId:"paraklik",appId:"1:298109933760:web:ff67e333ea00afd9acb525"};
+// ============================================================================
+var ITEMS=[
+{id:"parmak",t:"click",ico:"👆",name:"Güçlü Parmak",desc:"Tıklama +1",base:15,v:1},
+{id:"eldiven",t:"click",ico:"🧤",name:"Çelik Eldiven",desc:"Tıklama +5",base:120,v:5},
+{id:"robot",t:"click",ico:"🦾",name:"Robot Kol",desc:"Tıklama +25",base:1200,v:25},
+{id:"lazer",t:"click",ico:"⚡",name:"Lazer Parmak",desc:"Tıklama +150",base:15000,v:150},
+{id:"oto",t:"auto",ico:"🤖",name:"Otomatik Tıklayıcı",desc:"Saniyede +1",base:50,v:1},
+{id:"fabrika",t:"auto",ico:"🏭",name:"Mini Fabrika",desc:"Saniyede +8",base:500,v:8},
+{id:"makine",t:"auto",ico:"💸",name:"Para Makinesi",desc:"Saniyede +60",base:5000,v:60},
+{id:"maden",t:"auto",ico:"⛏️",name:"Altın Madeni",desc:"Saniyede +400",base:40000,v:400},
+{id:"x2",t:"power",ico:"✨",name:"Altın Dokunuş x2",desc:"Tüm kazancı 2 katla (kalıcı)",base:25000,once:1}];
+var BOOSTS=[{ico:"⏩",name:"Hız Modu x2",desc:"30 sn kazanç x2",cost:800,sec:30,m:2},{ico:"🔥",name:"Mega Tık x7",desc:"15 sn kazanç x7",cost:3000,sec:15,m:7}];
+var SKINS=[["🪙",0],["💎",2000],["🍕",5000],["🐱",10000],["🔥",25000],["👑",100000]];
+var S={coins:0,total:0,own:{},skins:{0:1},skin:0,boostUntil:0,boostM:1,nick:"",clan:"",friends:[],code:""};
+try{var r=localStorage.getItem("pk1");if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
+if(!S.code){S.code=Math.random().toString(36).slice(2,8).toUpperCase()}
+var tab="click",combo=0,lastClick=0,mute=false,AC=null;
+function snd(f,d,ty,v){if(mute)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();var o=AC.createOscillator(),g=AC.createGain();o.type=ty||"sine";o.frequency.value=f;g.gain.setValueAtTime(v||.1,AC.currentTime);g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+d);o.connect(g);g.connect(AC.destination);o.start();o.stop(AC.currentTime+d)}catch(e){}}
+function fmt(n){n=Math.floor(n||0);if(n<1e6)return n.toLocaleString("tr-TR");var u=["","","M","Mr","Tr","Kt"],i=0,v=n;while(v>=1000&&i<5){v/=1000;i++}return v.toFixed(2).replace(".",",")+" "+u[i]}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function own(id){return S.own[id]||0}
+function cost(i){return Math.ceil(i.base*Math.pow(1.15,own(i.id)))}
+function week(){return Math.floor(Date.now()/(7*864e5))}
+function boost(){return Date.now()<S.boostUntil?S.boostM:1}
+function warRank(){for(var i=0;i<warList.length;i++)if(warList[i].id==S.clan)return i;return 99}
+function base(){return(own("x2")?2:1)*(S.clan?1.1:1)*(warRank()<3?1.1:1)*boost()}
+function cmul(){return 1+Math.min(combo,50)/25}
+function pc(){var c=1;ITEMS.forEach(function(i){if(i.t=="click")c+=i.v*own(i.id)});return c*base()}
+function ps(){var s=0;ITEMS.forEach(function(i){if(i.t=="auto")s+=i.v*own(i.id)});return s*base()}
+function save(){try{localStorage.setItem("pk1",JSON.stringify(S))}catch(e){}}
+function toast(t){var e=document.getElementById("toast");e.textContent=t;e.className="on";clearTimeout(toast.t);toast.t=setTimeout(function(){e.className=""},2200)}
+var stage=document.getElementById("stage"),btn=document.getElementById("btn"),comboEl=document.getElementById("combo");
+function earn(g){S.coins+=g;S.total+=g}
+btn.addEventListener("pointerdown",function(e){e.preventDefault();btn.classList.add("down");
+var n=Date.now();combo=(n-lastClick<1200)?combo+1:1;lastClick=n;
+var crit=Math.random()<.08,g=pc()*cmul()*(crit?5:1);earn(g);
+if(crit){snd(880,.12,"square",.08);setTimeout(function(){snd(1320,.15,"square",.08)},70)}else snd(300+Math.min(combo,50)*10,.07,"triangle");
+if(navigator.vibrate)navigator.vibrate(8);
+var d=document.createElement("div");d.className="pop"+(crit?" crit":"");d.textContent=(crit?"KRİTİK! +":"+")+fmt(g);
+var b=stage.getBoundingClientRect();d.style.left=Math.max(0,e.clientX-b.left-30)+"px";d.style.top=(e.clientY-b.top-20)+"px";
+stage.appendChild(d);setTimeout(function(){d.remove()},800);draw()});
+["pointerup","pointerleave","pointercancel"].forEach(function(n){btn.addEventListener(n,function(){btn.classList.remove("down")})});
+document.getElementById("mute").onclick=function(){mute=!mute;this.textContent=mute?"🔇":"🔊"};
+function draw(){
+document.getElementById("coins").firstChild&&0;
+document.getElementById("coins").textContent=fmt(S.coins);
+document.getElementById("pc").textContent="Tıklama +"+fmt(pc());document.getElementById("ps").textContent="Saniye +"+fmt(ps());
+var bd="",sec=Math.ceil((S.boostUntil-Date.now())/1000);
+if(sec>0)bd+='<span class="badge">⚡ x'+S.boostM+' · '+sec+' sn</span>';
+if(S.clan)bd+='<span class="badge">🛡️ Klan +%10</span>';
+if(S.clan&&warRank()<3)bd+='<span class="badge">⚔️ Savaş +%10</span>';
+document.getElementById("badges").innerHTML=bd;
+comboEl.textContent=combo>1&&Date.now()-lastClick<1200?"Kombo "+combo+" · x"+cmul().toFixed(2):"";
+var bs=document.querySelectorAll("[data-cost]");for(var i=0;i<bs.length;i++)bs[i].disabled=bs[i].hasAttribute("data-done")||S.coins<+bs[i].getAttribute("data-cost")}
+function item(o){var b=document.createElement("button");b.className="item";
+if(o.cost!=null)b.setAttribute("data-cost",o.cost);if(o.done)b.setAttribute("data-done","1");
+b.innerHTML='<div class="ico">'+o.ico+'</div><div class="info"><div class="name">'+esc(o.name)+'</div><div class="desc">'+esc(o.desc)+'</div><div class="own">'+esc(o.own||"")+'</div></div><div class="cost">'+esc(o.right||"")+'</div>';
+b.addEventListener("click",o.fn);return b}
+function ok(){snd(660,.1);setTimeout(function(){snd(990,.15)},90)}
+function no(){snd(150,.2,"square",.08)}
+function buy(it){var c=cost(it);if(S.coins<c||(it.once&&own(it.id)))return no();S.coins-=c;S.own[it.id]=own(it.id)+1;ok();save();show()}
+function panel(title){var p=document.createElement("div");p.className="panel";if(title)p.innerHTML="<h3>"+title+"</h3>";document.getElementById("content").appendChild(p);return p}
+function row(p,html,btnTxt,fn,cls){var r=document.createElement("div");r.className="row";r.innerHTML=html;if(btnTxt){var b=document.createElement("button");b.className="btn2";b.textContent=btnTxt;b.onclick=fn;r.appendChild(b)}p.appendChild(r);return r}
+function inp(ph,val,w){var i=document.createElement("input");i.placeholder=ph;i.value=val||"";if(w)i.style.width=w;return i}
+function show(){
+var tabs=[["click","👆 Tıklama"],["auto","🤖 Otomatik"],["power","⚡ Güçler"],["skin","🎨 Görünüm"],["social","👥 Arkadaş"],["clan","🛡️ Klan"],["war","⚔️ Savaş"]];
+var t=document.getElementById("tabs");t.innerHTML="";
+tabs.forEach(function(x){var b=document.createElement("button");b.textContent=x[1];if(tab==x[0])b.className="on";b.onclick=function(){tab=x[0];show()};t.appendChild(b)});
+var c=document.getElementById("content");c.innerHTML="";
+if(tab=="click"||tab=="auto"||tab=="power"||tab=="skin"){
+var l=document.createElement("div");l.className="list";c.appendChild(l);
+if(tab=="click"||tab=="auto")ITEMS.filter(function(i){return i.t==tab}).forEach(function(i){l.appendChild(item({ico:i.ico,name:i.name,desc:i.desc,own:"Sahip: "+own(i.id),cost:cost(i),right:"🪙 "+fmt(cost(i)),fn:function(){buy(i)}}))});
+if(tab=="power"){BOOSTS.forEach(function(b){l.appendChild(item({ico:b.ico,name:b.name,desc:b.desc,cost:b.cost,right:"🪙 "+fmt(b.cost),fn:function(){if(S.coins<b.cost)return no();S.coins-=b.cost;S.boostUntil=Date.now()+b.sec*1000;S.boostM=b.m;ok();save();draw()}}))});
+var x=ITEMS[ITEMS.length-1],d=own(x.id)>0;l.appendChild(item({ico:x.ico,name:x.name,desc:x.desc,own:d?"Satın alındı ✓":"",cost:d?0:x.base,done:d,right:d?"":"🪙 "+fmt(x.base),fn:function(){buy(x)}}))}
+if(tab=="skin")SKINS.forEach(function(s,i){var has=S.skins[i];l.appendChild(item({ico:s[0],name:"Buton "+s[0],desc:has?(S.skin==i?"Seçili":"Seçmek için dokun"):"Yeni görünüm",cost:has?0:s[1],right:has?"":"🪙 "+fmt(s[1]),fn:function(){if(has){S.skin=i}else if(S.coins>=s[1]){S.coins-=s[1];S.skins[i]=1;S.skin=i;ok()}else return no();btn.textContent=s[0];save();show()}}))});
+}else if(!db){panel("🌐 Çok oyunculu kapalı").innerHTML+='<div class="small">Arkadaş, klan ve savaş için Firebase ayarını index.html dosyasının başına yazman gerekiyor. Ayarlar yapılınca burası açılır.</div>'}
+else if(tab=="social")drawSocial();else if(tab=="clan")drawClan();else drawWar();
+draw()}
+// ===== Çok oyunculu (Firebase) =====
+var db=null,UID=null,players=[],clans=[],warList=[],members=[],friends=[],unM=null,unF=null,lastSent=0;
+function live(){return document.activeElement&&document.activeElement.tagName=="INPUT"}
+function refresh(t){if(tab==t&&!live())show()}
+function initFB(){
+if(!window.firebase||FIREBASE_CONFIG.apiKey=="BURAYA")return;
+try{firebase.initializeApp(FIREBASE_CONFIG);db=firebase.firestore();db.settings({experimentalForceLongPolling:true});
+firebase.auth().signInAnonymously().then(function(c){UID=c.user.uid;lastSent=S.total;startFB()}).catch(function(){db=null;toast("Bağlantı kurulamadı");show()})}catch(e){db=null}}
+function startFB(){
+db.collection("players").orderBy("total","desc").limit(20).onSnapshot(function(s){players=s.docs.map(function(x){var v=x.data();v.id=x.id;return v});refresh("social")});
+db.collection("clans").orderBy("total","desc").limit(30).onSnapshot(function(s){clans=s.docs.map(function(x){var v=x.data();v.id=x.id;return v});refresh("clan");refresh("war")});
+db.collection("clans").orderBy("w"+week(),"desc").limit(20).onSnapshot(function(s){warList=s.docs.map(function(x){var v=x.data();v.id=x.id;return v});refresh("war");draw()},function(){});
+subM();subF();show();sync()}
+function subM(){if(unM)unM();unM=null;members=[];if(!S.clan)return;unM=db.collection("players").where("clan","==",S.clan).limit(30).onSnapshot(function(s){members=s.docs.map(function(x){var v=x.data();v.id=x.id;return v}).sort(function(a,b){return b.total-a.total});refresh("clan")})}
+function subF(){if(unF)unF();unF=null;friends=[];if(!S.friends.length)return;unF=db.collection("players").where(firebase.firestore.FieldPath.documentId(),"in",S.friends.slice(0,10)).onSnapshot(function(s){friends=s.docs.map(function(x){var v=x.data();v.id=x.id;return v});refresh("social")})}
+function sync(){if(!db||!UID)return;var d=Math.floor(S.total-lastSent);
+db.collection("players").doc(UID).set({nick:S.nick||"Oyuncu",code:S.code,clan:S.clan||"",total:Math.floor(S.total)},{merge:true}).catch(function(){});
+if(S.clan&&d>0){var u={total:firebase.firestore.FieldValue.increment(d)};u["w"+week()]=firebase.firestore.FieldValue.increment(d);db.collection("clans").doc(S.clan).update(u).catch(function(){})}
+lastSent+=Math.max(d,0)}
+function setClan(id){S.clan=id;lastSent=S.total;save();sync();subM();show()}
+function nickRow(p){var r=row(p,'<div class="grow">Takma adın</div>');var i=inp("İsim",S.nick);i.maxLength=16;i.onchange=function(){S.nick=i.value.trim().slice(0,16);save();sync()};r.appendChild(i)}
+function drawSocial(){
+var p=panel("👥 Arkadaşlar");nickRow(p);
+row(p,'<div class="grow">Arkadaş kodun: <b class="me">'+esc(S.code)+'</b></div>');
+var r=row(p,'');var ci=inp("Arkadaş kodu","","110px");ci.maxLength=6;r.appendChild(ci);
+var b=document.createElement("button");b.className="btn2";b.textContent="Ekle";b.onclick=function(){var k=ci.value.trim().toUpperCase();if(!k)return;
+db.collection("players").where("code","==",k).limit(1).get().then(function(s){if(s.empty)return toast("Bu kodda oyuncu yok");var id=s.docs[0].id;if(id==UID)return toast("Bu sensin 😄");if(S.friends.indexOf(id)<0)S.friends.push(id);save();subF();toast("Arkadaş eklendi!")})};r.appendChild(b);
+friends.forEach(function(f){row(p,'<div class="grow">'+esc(f.nick||"Oyuncu")+'</div><div>'+fmt(f.total)+' 🪙</div>')});
+var p2=panel("🏆 En iyi oyuncular");players.forEach(function(x,i){row(p2,'<div>'+(i+1)+'.</div><div class="grow'+(x.id==UID?" me":"")+'">'+esc(x.nick||"Oyuncu")+'</div><div>'+fmt(x.total)+'</div>')})}
+function drawClan(){
+var mine=clans.filter(function(k){return k.id==S.clan})[0],p=panel(mine?esc(mine.emoji)+" "+esc(mine.name):"🛡️ Klan");
+if(mine){row(p,'<div class="grow">Klan toplamı</div><b>'+fmt(mine.total)+' 🪙</b>');members.forEach(function(x,i){row(p,'<div>'+(i+1)+'.</div><div class="grow'+(x.id==UID?" me":"")+'">'+esc(x.nick||"Oyuncu")+'</div><div>'+fmt(x.total)+'</div>')});
+row(p,'<div class="small grow">Klandayken +%10 kazanç</div>',"Ayrıl",function(){setClan("")})}
+else{var r=row(p,'');var e=inp("🦁","🦁","54px");e.maxLength=2;var k=inp("Klan adı","");k.maxLength=18;k.style.flex="1";r.appendChild(e);r.appendChild(k);
+var b=document.createElement("button");b.className="btn2";b.textContent="Klan kur";b.onclick=function(){var n=k.value.trim();if(!n)return toast("Klan adı yaz");db.collection("clans").add({name:n,emoji:e.value||"🛡️",owner:UID,total:0}).then(function(ref){setClan(ref.id);toast("Klan kuruldu!")})};r.appendChild(b)}
+var p2=panel("📜 Klanlar");if(!clans.length)p2.innerHTML+='<div class="small">Henüz klan yok, ilkini sen kur!</div>';
+clans.forEach(function(k,i){row(p2,'<div>'+(i+1)+'.</div><div class="grow'+(k.id==S.clan?" me":"")+'">'+esc(k.emoji||"🛡️")+" "+esc(k.name)+'</div><div>'+fmt(k.total)+'</div>',(!S.clan?"Katıl":""),function(){setClan(k.id);toast("Klana katıldın!")})})}
+function drawWar(){
+var left=(week()+1)*7*864e5-Date.now(),dd=Math.floor(left/864e5),hh=Math.floor(left%864e5/36e5);
+var p=panel("⚔️ Klan Savaşı");row(p,'<div class="grow">Savaş bitimine</div><b>'+dd+" gün "+hh+" sa</b>");
+row(p,'<div class="small">Bu hafta en çok para toplayan ilk 3 klan, üyelerine +%10 ekstra kazanç verir.</div>');
+if(!warList.length)p.innerHTML+='<div class="small">Bu hafta henüz puan yok. Klana katıl ve tıklamaya başla!</div>';
+warList.forEach(function(k,i){row(p,'<div>'+["🥇","🥈","🥉"][i]+(i>2?(i+1)+".":"")+'</div><div class="grow'+(k.id==S.clan?" me":"")+'">'+esc(k.emoji||"🛡️")+" "+esc(k.name)+'</div><div>'+fmt(k["w"+week()])+'</div>')})}
+setInterval(function(){var s=ps();if(s>0)earn(s/10);draw()},100);
+setInterval(save,3000);setInterval(sync,4000);
+document.getElementById("reset").onclick=function(){if(confirm("Tüm ilerleme silinsin mi?")){S.coins=0;S.total=0;S.own={};S.skins={0:1};S.skin=0;S.boostUntil=0;lastSent=0;btn.textContent="🪙";save();show()}};
+btn.textContent=SKINS[S.skin||0][0];show();initFB();
+</script></body></html>

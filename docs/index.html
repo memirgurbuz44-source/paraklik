@@ -35,13 +35,18 @@ input{font:inherit;padding:8px 10px;border-radius:10px;border:1px solid var(--li
 .me{color:var(--ac);font-weight:800}
 #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;background:#000;color:#fff;padding:10px 16px;border-radius:12px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:9}
 #toast.on{opacity:1}
+#mo{position:fixed;inset:0;background:var(--bg);z-index:8;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;text-align:center}
+#mo.on{display:flex}
+#mbtn{width:min(58vw,250px);aspect-ratio:1;border-radius:50%;border:0;font-size:90px;line-height:1;background:radial-gradient(circle at 35% 30%,#ffe08a,var(--ac) 55%,var(--ac2));box-shadow:0 10px 0 var(--ac2);touch-action:manipulation}
+#mbtn:active{transform:translateY(8px);box-shadow:0 2px 0 var(--ac2)}
+.score{display:flex;gap:18px;font-size:22px;font-weight:800}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 </head><body>
 <div class="wrap">
-<div class="top"><div class="coins"><span id="coins">0</span> 🪙 <button class="btn2 g" id="mute">🔊</button></div>
+<div class="top"><div class="coins"><span id="coins">0</span> 🪙 <button class="btn2 g" id="mute">🔊</button></div><div class="stats" style="font-weight:700">💎 <span id="dia">0</span> · 🔴 <span id="ruby">0</span></div>
 <div class="stats"><span id="pc"></span> · <span id="ps"></span></div><div id="badges"></div></div>
 <div class="stage" id="stage"><div id="combo"></div><button id="btn">🪙</button></div>
 <div class="tabs" id="tabs"></div><div id="content"></div>
@@ -63,7 +68,7 @@ var ITEMS=[
 {id:"x2",t:"power",ico:"✨",name:"Altın Dokunuş x2",desc:"Tüm kazancı 2 katla (kalıcı)",base:25000,once:1}];
 var BOOSTS=[{ico:"⏩",name:"Hız Modu x2",desc:"30 sn kazanç x2",cost:800,sec:30,m:2},{ico:"🔥",name:"Mega Tık x7",desc:"15 sn kazanç x7",cost:3000,sec:15,m:7}];
 var SKINS=[["🪙",0],["💎",2000],["🍕",5000],["🐱",10000],["🔥",25000],["👑",100000]];
-var S={coins:0,total:0,own:{},skins:{0:1},skin:0,boostUntil:0,boostM:1,nick:"",clan:"",friends:[],code:""};
+var S={coins:0,total:0,own:{},skins:{0:1},skin:0,boostUntil:0,boostM:1,nick:"",clan:"",friends:[],code:"",dia:0,ruby:0,idRights:1,team:"",claimed:{}};
 try{var r=localStorage.getItem("pk1");if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
 if(!S.code){S.code=Math.random().toString(36).slice(2,8).toUpperCase()}
 var tab="click",combo=0,lastClick=0,mute=false,AC=null;
@@ -75,7 +80,7 @@ function cost(i){return Math.ceil(i.base*Math.pow(1.15,own(i.id)))}
 function week(){return Math.floor(Date.now()/(7*864e5))}
 function boost(){return Date.now()<S.boostUntil?S.boostM:1}
 function warRank(){for(var i=0;i<warList.length;i++)if(warList[i].id==S.clan)return i;return 99}
-function base(){return(own("x2")?2:1)*(S.clan?1.1:1)*(warRank()<3?1.1:1)*boost()}
+function base(){return(own("x2")?2:1)*(own("dbonus")?1.25:1)*(own("rmult")?1.5:1)*(S.clan?1.1:1)*(warRank()<3?1.1:1)*boost()}
 function cmul(){return 1+Math.min(combo,50)/25}
 function pc(){var c=1;ITEMS.forEach(function(i){if(i.t=="click")c+=i.v*own(i.id)});return c*base()}
 function ps(){var s=0;ITEMS.forEach(function(i){if(i.t=="auto")s+=i.v*own(i.id)});return s*base()}
@@ -95,7 +100,7 @@ stage.appendChild(d);setTimeout(function(){d.remove()},800);draw()});
 document.getElementById("mute").onclick=function(){mute=!mute;this.textContent=mute?"🔇":"🔊"};
 function draw(){
 document.getElementById("coins").firstChild&&0;
-document.getElementById("coins").textContent=fmt(S.coins);
+document.getElementById("coins").textContent=fmt(S.coins);document.getElementById("dia").textContent=fmt(S.dia);document.getElementById("ruby").textContent=fmt(S.ruby);
 document.getElementById("pc").textContent="Tıklama +"+fmt(pc());document.getElementById("ps").textContent="Saniye +"+fmt(ps());
 var bd="",sec=Math.ceil((S.boostUntil-Date.now())/1000);
 if(sec>0)bd+='<span class="badge">⚡ x'+S.boostM+' · '+sec+' sn</span>';
@@ -115,7 +120,7 @@ function panel(title){var p=document.createElement("div");p.className="panel";if
 function row(p,html,btnTxt,fn,cls){var r=document.createElement("div");r.className="row";r.innerHTML=html;if(btnTxt){var b=document.createElement("button");b.className="btn2";b.textContent=btnTxt;b.onclick=fn;r.appendChild(b)}p.appendChild(r);return r}
 function inp(ph,val,w){var i=document.createElement("input");i.placeholder=ph;i.value=val||"";if(w)i.style.width=w;return i}
 function show(){
-var tabs=[["click","👆 Tıklama"],["auto","🤖 Otomatik"],["power","⚡ Güçler"],["skin","🎨 Görünüm"],["social","👥 Arkadaş"],["clan","🛡️ Klan"],["war","⚔️ Savaş"]];
+var tabs=[["click","👆 Tıklama"],["auto","🤖 Otomatik"],["power","⚡ Güçler"],["skin","🎨 Görünüm"],["social","👥 Arkadaş"],["clan","🛡️ Klan"],["war","⚔️ Savaş"],["team","🎮 Maç"],["dia","💎 Elmas"],["ruby","🔴 Yakut"]];
 var t=document.getElementById("tabs");t.innerHTML="";
 tabs.forEach(function(x){var b=document.createElement("button");b.textContent=x[1];if(tab==x[0])b.className="on";b.onclick=function(){tab=x[0];show()};t.appendChild(b)});
 var c=document.getElementById("content");c.innerHTML="";
@@ -125,8 +130,8 @@ if(tab=="click"||tab=="auto")ITEMS.filter(function(i){return i.t==tab}).forEach(
 if(tab=="power"){BOOSTS.forEach(function(b){l.appendChild(item({ico:b.ico,name:b.name,desc:b.desc,cost:b.cost,right:"🪙 "+fmt(b.cost),fn:function(){if(S.coins<b.cost)return no();S.coins-=b.cost;S.boostUntil=Date.now()+b.sec*1000;S.boostM=b.m;ok();save();draw()}}))});
 var x=ITEMS[ITEMS.length-1],d=own(x.id)>0;l.appendChild(item({ico:x.ico,name:x.name,desc:x.desc,own:d?"Satın alındı ✓":"",cost:d?0:x.base,done:d,right:d?"":"🪙 "+fmt(x.base),fn:function(){buy(x)}}))}
 if(tab=="skin")SKINS.forEach(function(s,i){var has=S.skins[i];l.appendChild(item({ico:s[0],name:"Buton "+s[0],desc:has?(S.skin==i?"Seçili":"Seçmek için dokun"):"Yeni görünüm",cost:has?0:s[1],right:has?"":"🪙 "+fmt(s[1]),fn:function(){if(has){S.skin=i}else if(S.coins>=s[1]){S.coins-=s[1];S.skins[i]=1;S.skin=i;ok()}else return no();btn.textContent=s[0];save();show()}}))});
-}else if(!db){panel("🌐 Çok oyunculu kapalı").innerHTML+='<div class="small">Arkadaş, klan ve savaş için Firebase ayarını index.html dosyasının başına yazman gerekiyor. Ayarlar yapılınca burası açılır.</div>'}
-else if(tab=="social")drawSocial();else if(tab=="clan")drawClan();else drawWar();
+}else if(tab=="dia"||tab=="ruby"){drawMarket(tab)}else if(!db){panel("🌐 Çok oyunculu kapalı").innerHTML+='<div class="small">Arkadaş, klan ve savaş için Firebase ayarını index.html dosyasının başına yazman gerekiyor. Ayarlar yapılınca burası açılır.</div>'}
+else if(tab=="social")drawSocial();else if(tab=="clan")drawClan();else if(tab=="team")drawTeam();else drawWar();
 draw()}
 // ===== Çok oyunculu (Firebase) =====
 var db=null,UID=null,players=[],clans=[],warList=[],members=[],friends=[],unM=null,unF=null,lastSent=0;
@@ -140,7 +145,7 @@ function startFB(){
 db.collection("players").orderBy("total","desc").limit(20).onSnapshot(function(s){players=s.docs.map(function(x){var v=x.data();v.id=x.id;return v});refresh("social")});
 db.collection("clans").orderBy("total","desc").limit(30).onSnapshot(function(s){clans=s.docs.map(function(x){var v=x.data();v.id=x.id;return v});refresh("clan");refresh("war")});
 db.collection("clans").orderBy("w"+week(),"desc").limit(20).onSnapshot(function(s){warList=s.docs.map(function(x){var v=x.data();v.id=x.id;return v});refresh("war");draw()},function(){});
-subM();subF();show();sync()}
+subM();subF();subInv();subT();show();sync()}
 function subM(){if(unM)unM();unM=null;members=[];if(!S.clan)return;unM=db.collection("players").where("clan","==",S.clan).limit(30).onSnapshot(function(s){members=s.docs.map(function(x){var v=x.data();v.id=x.id;return v}).sort(function(a,b){return b.total-a.total});refresh("clan")})}
 function subF(){if(unF)unF();unF=null;friends=[];if(!S.friends.length)return;unF=db.collection("players").where(firebase.firestore.FieldPath.documentId(),"in",S.friends.slice(0,10)).onSnapshot(function(s){friends=s.docs.map(function(x){var v=x.data();v.id=x.id;return v});refresh("social")})}
 function sync(){if(!db||!UID)return;var d=Math.floor(S.total-lastSent);
@@ -148,11 +153,11 @@ db.collection("players").doc(UID).set({nick:S.nick||"Oyuncu",code:S.code,clan:S.
 if(S.clan&&d>0){var u={total:firebase.firestore.FieldValue.increment(d)};u["w"+week()]=firebase.firestore.FieldValue.increment(d);db.collection("clans").doc(S.clan).update(u).catch(function(){})}
 lastSent+=Math.max(d,0)}
 function setClan(id){S.clan=id;lastSent=S.total;save();sync();subM();show()}
-function nickRow(p){var r=row(p,'<div class="grow">Takma adın</div>');var i=inp("İsim",S.nick);i.maxLength=16;i.onchange=function(){S.nick=i.value.trim().slice(0,16);save();sync()};r.appendChild(i)}
+function nickRow(p){var r=row(p,'<div class="grow">Takma adın</div>');var i=inp("İsim",S.nick);i.maxLength=16;i.onchange=function(){S.nick=i.value.trim().slice(0,16);save();sync()};r.appendChild(i);var r2=row(p,'<div class="grow">ID (hak: '+(S.idRights||0)+')</div>');var di=inp("YENİ ID",S.code,"110px");di.maxLength=12;r2.appendChild(di);var bb=document.createElement("button");bb.className="btn2";bb.textContent="Değiştir";bb.onclick=function(){changeId(di.value)};r2.appendChild(bb)}
 function drawSocial(){
 var p=panel("👥 Arkadaşlar");nickRow(p);
-row(p,'<div class="grow">Arkadaş kodun: <b class="me">'+esc(S.code)+'</b></div>');
-var r=row(p,'');var ci=inp("Arkadaş kodu","","110px");ci.maxLength=6;r.appendChild(ci);
+row(p,'<div class="grow">Arkadaş ekleme ID: <b class="me">'+esc(S.code)+'</b></div>');
+var r=row(p,'');var ci=inp("Arkadaş ID","","110px");ci.maxLength=12;r.appendChild(ci);
 var b=document.createElement("button");b.className="btn2";b.textContent="Ekle";b.onclick=function(){var k=ci.value.trim().toUpperCase();if(!k)return;
 db.collection("players").where("code","==",k).limit(1).get().then(function(s){if(s.empty)return toast("Bu kodda oyuncu yok");var id=s.docs[0].id;if(id==UID)return toast("Bu sensin 😄");if(S.friends.indexOf(id)<0)S.friends.push(id);save();subF();toast("Arkadaş eklendi!")})};r.appendChild(b);
 friends.forEach(function(f){row(p,'<div class="grow">'+esc(f.nick||"Oyuncu")+'</div><div>'+fmt(f.total)+' 🪙</div>')});
@@ -174,5 +179,6 @@ warList.forEach(function(k,i){row(p,'<div>'+["🥇","🥈","🥉"][i]+(i>2?(i+1)
 setInterval(function(){var s=ps();if(s>0)earn(s/10);draw()},100);
 setInterval(save,3000);setInterval(sync,4000);
 document.getElementById("reset").onclick=function(){if(confirm("Tüm ilerleme silinsin mi?")){S.coins=0;S.total=0;S.own={};S.skins={0:1};S.skin=0;S.boostUntil=0;lastSent=0;btn.textContent="🪙";save();show()}};
-btn.textContent=SKINS[S.skin||0][0];show();initFB();
-</script></body></html>
+// ===== Elmas / Yakut marketi, takım ve maç =====
+var DM=[
+{id:"dkasa",ico:"🎁",name:"Elmas Kasası",desc:"Rastgele para ödülü",cost:10,fn:function(){var w=Math.max(20000,Math.floor((ps()*600+pc(

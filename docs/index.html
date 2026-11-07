@@ -68,8 +68,9 @@ var ITEMS=[
 {id:"x2",t:"power",ico:"✨",name:"Altın Dokunuş x2",desc:"Tüm kazancı 2 katla (kalıcı)",base:25000,once:1}];
 var BOOSTS=[{ico:"⏩",name:"Hız Modu x2",desc:"30 sn kazanç x2",cost:800,sec:30,m:2},{ico:"🔥",name:"Mega Tık x7",desc:"15 sn kazanç x7",cost:3000,sec:15,m:7}];
 var SKINS=[["🪙",0],["💎",2000],["🍕",5000],["🐱",10000],["🔥",25000],["👑",100000]];
-var S={coins:0,total:0,own:{},skins:{0:1},skin:0,boostUntil:0,boostM:1,nick:"",clan:"",friends:[],code:"",dia:0,ruby:0,idRights:1,team:"",claimed:{}};
+var S={coins:0,total:0,own:{},skins:{0:1},skin:0,boostUntil:0,boostM:1,nick:"",clan:"",friends:[],code:"",dia:0,ruby:0,idRights:1,claimed:{},rday:0,rn:0,dday:0,dn:0};
 try{var r=localStorage.getItem("pk1");if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
+if(S._h!=null&&S._h!==hh()){S.coins=0;S.total=0;S.dia=0;S.ruby=0;S.own={};setTimeout(function(){toast("Kayıt bozuk, sıfırlandı")},500)}
 if(!S.code){S.code=Math.random().toString(36).slice(2,8).toUpperCase()}
 var tab="click",combo=0,lastClick=0,mute=false,AC=null;
 function snd(f,d,ty,v){if(mute)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();var o=AC.createOscillator(),g=AC.createGain();o.type=ty||"sine";o.frequency.value=f;g.gain.setValueAtTime(v||.1,AC.currentTime);g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+d);o.connect(g);g.connect(AC.destination);o.start();o.stop(AC.currentTime+d)}catch(e){}}
@@ -84,11 +85,14 @@ function base(){return(own("x2")?2:1)*(own("dbonus")?1.25:1)*(own("rmult")?1.5:1
 function cmul(){return 1+Math.min(combo,50)/25}
 function pc(){var c=1;ITEMS.forEach(function(i){if(i.t=="click")c+=i.v*own(i.id)});return c*base()}
 function ps(){var s=0;ITEMS.forEach(function(i){if(i.t=="auto")s+=i.v*own(i.id)});return s*base()}
-function save(){try{localStorage.setItem("pk1",JSON.stringify(S))}catch(e){}}
+var tapLog=[];
+function rateOK(){var n=Date.now();tapLog=tapLog.filter(function(t){return n-t<1000});if(tapLog.length>=20)return false;tapLog.push(n);return true}
+function hh(){var x=Math.floor(S.coins)+"|"+Math.floor(S.total)+"|"+S.dia+"|"+S.ruby+"|"+JSON.stringify(S.own)+"|BW5",h=7;for(var i=0;i<x.length;i++)h=(h*31+x.charCodeAt(i))|0;return h}
+function save(){S._h=hh();try{localStorage.setItem("pk1",JSON.stringify(S))}catch(e){}}
 function toast(t){var e=document.getElementById("toast");e.textContent=t;e.className="on";clearTimeout(toast.t);toast.t=setTimeout(function(){e.className=""},2200)}
 var stage=document.getElementById("stage"),btn=document.getElementById("btn"),comboEl=document.getElementById("combo");
 function earn(g){S.coins+=g;S.total+=g}
-btn.addEventListener("pointerdown",function(e){e.preventDefault();btn.classList.add("down");
+btn.addEventListener("pointerdown",function(e){e.preventDefault();btn.classList.add("down");if(!rateOK())return;
 var n=Date.now();combo=(n-lastClick<1200)?combo+1:1;lastClick=n;
 var crit=Math.random()<.08,g=pc()*cmul()*(crit?5:1);earn(g);
 if(crit){snd(880,.12,"square",.08);setTimeout(function(){snd(1320,.15,"square",.08)},70)}else snd(300+Math.min(combo,50)*10,.07,"triangle");
@@ -120,7 +124,7 @@ function panel(title){var p=document.createElement("div");p.className="panel";if
 function row(p,html,btnTxt,fn,cls){var r=document.createElement("div");r.className="row";r.innerHTML=html;if(btnTxt){var b=document.createElement("button");b.className="btn2";b.textContent=btnTxt;b.onclick=fn;r.appendChild(b)}p.appendChild(r);return r}
 function inp(ph,val,w){var i=document.createElement("input");i.placeholder=ph;i.value=val||"";if(w)i.style.width=w;return i}
 function show(){
-var tabs=[["click","👆 Tıklama"],["auto","🤖 Otomatik"],["power","⚡ Güçler"],["skin","🎨 Görünüm"],["social","👥 Arkadaş"],["clan","🛡️ Klan"],["war","⚔️ Savaş"],["team","🎮 Maç"],["dia","💎 Elmas"],["ruby","🔴 Yakut"]];
+var tabs=[["click","👆 Tıklama"],["auto","🤖 Otomatik"],["power","⚡ Güçler"],["skin","🎨 Görünüm"],["social","👥 Arkadaş"],["clan","🛡️ Klan"],["war","⚔️ Savaş"],["team","⚔️ Düello"],["dia","💎 Elmas"],["ruby","🔴 Yakut"]];
 var t=document.getElementById("tabs");t.innerHTML="";
 tabs.forEach(function(x){var b=document.createElement("button");b.textContent=x[1];if(tab==x[0])b.className="on";b.onclick=function(){tab=x[0];show()};t.appendChild(b)});
 var c=document.getElementById("content");c.innerHTML="";
@@ -131,7 +135,7 @@ if(tab=="power"){BOOSTS.forEach(function(b){l.appendChild(item({ico:b.ico,name:b
 var x=ITEMS[ITEMS.length-1],d=own(x.id)>0;l.appendChild(item({ico:x.ico,name:x.name,desc:x.desc,own:d?"Satın alındı ✓":"",cost:d?0:x.base,done:d,right:d?"":"🪙 "+fmt(x.base),fn:function(){buy(x)}}))}
 if(tab=="skin")SKINS.forEach(function(s,i){var has=S.skins[i];l.appendChild(item({ico:s[0],name:"Buton "+s[0],desc:has?(S.skin==i?"Seçili":"Seçmek için dokun"):"Yeni görünüm",cost:has?0:s[1],right:has?"":"🪙 "+fmt(s[1]),fn:function(){if(has){S.skin=i}else if(S.coins>=s[1]){S.coins-=s[1];S.skins[i]=1;S.skin=i;ok()}else return no();btn.textContent=s[0];save();show()}}))});
 }else if(tab=="dia"||tab=="ruby"){drawMarket(tab)}else if(!db){panel("🌐 Çok oyunculu kapalı").innerHTML+='<div class="small">Arkadaş, klan ve savaş için Firebase ayarını index.html dosyasının başına yazman gerekiyor. Ayarlar yapılınca burası açılır.</div>'}
-else if(tab=="social")drawSocial();else if(tab=="clan")drawClan();else if(tab=="team")drawTeam();else drawWar();
+else if(tab=="social")drawSocial();else if(tab=="clan")drawClan();else if(tab=="team")drawDuel();else drawWar();
 draw()}
 // ===== Çok oyunculu (Firebase) =====
 var db=null,UID=null,players=[],clans=[],warList=[],members=[],friends=[],unM=null,unF=null,lastSent=0;
@@ -145,7 +149,7 @@ function startFB(){
 db.collection("players").orderBy("total","desc").limit(20).onSnapshot(function(s){players=s.docs.map(function(x){var v=x.data();v.id=x.id;return v});refresh("social")});
 db.collection("clans").orderBy("total","desc").limit(30).onSnapshot(function(s){clans=s.docs.map(function(x){var v=x.data();v.id=x.id;return v});refresh("clan");refresh("war")});
 db.collection("clans").orderBy("w"+week(),"desc").limit(20).onSnapshot(function(s){warList=s.docs.map(function(x){var v=x.data();v.id=x.id;return v});refresh("war");draw()},function(){});
-subM();subF();subInv();subT();show();sync()}
+subM();subF();subDuel();show();sync()}
 function subM(){if(unM)unM();unM=null;members=[];if(!S.clan)return;unM=db.collection("players").where("clan","==",S.clan).limit(30).onSnapshot(function(s){members=s.docs.map(function(x){var v=x.data();v.id=x.id;return v}).sort(function(a,b){return b.total-a.total});refresh("clan")})}
 function subF(){if(unF)unF();unF=null;friends=[];if(!S.friends.length)return;unF=db.collection("players").where(firebase.firestore.FieldPath.documentId(),"in",S.friends.slice(0,10)).onSnapshot(function(s){friends=s.docs.map(function(x){var v=x.data();v.id=x.id;return v});refresh("social")})}
 function sync(){if(!db||!UID)return;var d=Math.floor(S.total-lastSent);
@@ -154,14 +158,6 @@ if(S.clan&&d>0){var u={total:firebase.firestore.FieldValue.increment(d)};u["w"+w
 lastSent+=Math.max(d,0)}
 function setClan(id){S.clan=id;lastSent=S.total;save();sync();subM();show()}
 function nickRow(p){var r=row(p,'<div class="grow">Takma adın</div>');var i=inp("İsim",S.nick);i.maxLength=16;i.onchange=function(){S.nick=i.value.trim().slice(0,16);save();sync()};r.appendChild(i);var r2=row(p,'<div class="grow">ID (hak: '+(S.idRights||0)+')</div>');var di=inp("YENİ ID",S.code,"110px");di.maxLength=12;r2.appendChild(di);var bb=document.createElement("button");bb.className="btn2";bb.textContent="Değiştir";bb.onclick=function(){changeId(di.value)};r2.appendChild(bb)}
-function drawSocial(){
-var p=panel("👥 Arkadaşlar");nickRow(p);
-row(p,'<div class="grow">Arkadaş ekleme ID: <b class="me">'+esc(S.code)+'</b></div>');
-var r=row(p,'');var ci=inp("Arkadaş ID","","110px");ci.maxLength=12;r.appendChild(ci);
-var b=document.createElement("button");b.className="btn2";b.textContent="Ekle";b.onclick=function(){var k=ci.value.trim().toUpperCase();if(!k)return;
-db.collection("players").where("code","==",k).limit(1).get().then(function(s){if(s.empty)return toast("Bu kodda oyuncu yok");var id=s.docs[0].id;if(id==UID)return toast("Bu sensin 😄");if(S.friends.indexOf(id)<0)S.friends.push(id);save();subF();toast("Arkadaş eklendi!")})};r.appendChild(b);
-friends.forEach(function(f){row(p,'<div class="grow">'+esc(f.nick||"Oyuncu")+'</div><div>'+fmt(f.total)+' 🪙</div>')});
-var p2=panel("🏆 En iyi oyuncular");players.forEach(function(x,i){row(p2,'<div>'+(i+1)+'.</div><div class="grow'+(x.id==UID?" me":"")+'">'+esc(x.nick||"Oyuncu")+'</div><div>'+fmt(x.total)+'</div>')})}
 function drawClan(){
 var mine=clans.filter(function(k){return k.id==S.clan})[0],p=panel(mine?esc(mine.emoji)+" "+esc(mine.name):"🛡️ Klan");
 if(mine){row(p,'<div class="grow">Klan toplamı</div><b>'+fmt(mine.total)+' 🪙</b>');members.forEach(function(x,i){row(p,'<div>'+(i+1)+'.</div><div class="grow'+(x.id==UID?" me":"")+'">'+esc(x.nick||"Oyuncu")+'</div><div>'+fmt(x.total)+'</div>')});
@@ -192,73 +188,81 @@ var RM=[
 {id:"rkasa",ico:"🏆",name:"Altın Kasa",desc:"Büyük para ödülü",cost:5,fn:function(){var w=Math.max(100000,Math.floor(ps()*1800+pc()*1500));earn(w);toast("Altın Kasa: +"+fmt(w)+" 🪙")}}];
 function mbuy(m,k){if(S[k]<m.cost||(m.once&&own(m.id)))return no();S[k]-=m.cost;m.fn();ok();save();show()}
 function drawMarket(t){var d=t=="dia",k=d?"dia":"ruby",ic=d?"💎":"🔴",c=document.getElementById("content");
-if(d){var p=panel("💎 Elmas satın al (paranla)");[[1,2000],[10,18000],[100,150000]].forEach(function(x){row(p,'<div class="grow">'+x[0]+' 💎</div><b>'+fmt(x[1])+' 🪙</b>',"Satın al",function(){if(S.coins<x[1])return no();S.coins-=x[1];S.dia+=x[0];ok();save();show()})})}
-else{panel("🔴 Yakut marketi").innerHTML+='<div class="small">Yakut takım maçı kazanınca gelir: kazanan takımın her üyesi 1 yakut alır.</div>'}
+if(d){var p=panel("💎 Elmas satın al (paranla)");row(p,'<div class="small">1 💎 = '+fmt(dprice())+' 🪙 (kazancına göre değişir) · bugün kalan: '+dleft()+'</div>');[1,5,20].forEach(function(q){row(p,'<div class="grow">'+q+' 💎</div><b>'+fmt(dprice()*q)+' 🪙</b>',"Satın al",function(){dbuy(q)})})}
+else{panel("🔴 Yakut marketi").innerHTML+='<div class="small">Yakut düello kazanınca gelir: her galibiyet 5 yakut verir (günde en fazla 5 galibiyet).</div>'}
 var l=document.createElement("div");l.className="list";c.appendChild(l);
 (d?DM:RM).forEach(function(m){var done=m.once&&own(m.id),b=item({ico:m.ico,name:m.name,desc:m.desc,own:done?"Satın alındı ✓":"",right:m.cost+" "+ic,fn:function(){mbuy(m,k)}});if(done)b.disabled=true;l.appendChild(b)})}
 function changeId(v){v=v.trim().toUpperCase();if(!/^[A-Z0-9_]{3,12}$/.test(v))return toast("ID 3-12 harf veya rakam olmalı");if((S.idRights||0)<1)return toast("ID değiştirme hakkın yok (Elmas marketinden alabilirsin)");
 db.collection("players").where("code","==",v).limit(1).get().then(function(s){if(!s.empty&&s.docs[0].id!=UID)return toast("Bu ID alınmış");S.code=v;S.idRights--;save();sync();show();toast("Yeni ID: "+v)})}
-var team=null,invites=[],match=null,unT=null,unMt=null,mClicks=0,mSent=0,doneM={},pinv=0,FV=function(){return firebase.firestore.FieldValue};
-function subInv(){db.collection("teams").where("invited","array-contains",UID).onSnapshot(function(s){invites=s.docs.map(function(x){var v=x.data();v.id=x.id;return v});if(invites.length>pinv)toast("🎮 Takım daveti geldi!");pinv=invites.length;refresh("team")},function(){})}
-function subT(){if(unT)unT();unT=null;team=null;if(!S.team||!db)return;
-unT=db.doc("teams/"+S.team).onSnapshot(function(s){
-if(!s.exists||s.data().members.indexOf(UID)<0){S.team="";team=null;save();subT();refresh("team");return}
-team=s.data();team.id=s.id;
-if(team.matchId&&!doneM[team.matchId]&&!match)openMatch(team.matchId);
-refresh("team")})}
-function newTeam(){var n={};n[UID]=S.nick||"Oyuncu";db.collection("teams").add({leader:UID,members:[UID],names:n,invited:[],status:"lobby",matchId:"",size:1}).then(function(r){S.team=r.id;save();subT();toast("Takım kuruldu")})}
-function accept(v){if(S.team)return toast("Önce kendi takımından ayrıl");var ref=db.doc("teams/"+v.id);
-db.runTransaction(function(t){return t.get(ref).then(function(d){var x=d.data();if(!x||x.members.length>=5||x.status=="playing")throw 1;var u={members:FV().arrayUnion(UID),invited:FV().arrayRemove(UID),size:x.members.length+1};u["names."+UID]=S.nick||"Oyuncu";t.update(ref,u)})}).then(function(){S.team=v.id;save();subT();toast("Takıma katıldın!")}).catch(function(){toast("Takıma katılınamadı")})}
-function leaveTeam(){if(!team)return;var ref=db.doc("teams/"+team.id);
-db.runTransaction(function(t){return t.get(ref).then(function(d){var v=d.data();if(!v)return;var m=v.members.filter(function(x){return x!=UID});if(!m.length){t.delete(ref);return}var u={members:m,size:m.length,status:"lobby",matchId:""};u["names."+UID]=FV().delete();if(v.leader==UID)u.leader=m[0];t.update(ref,u)})}).then(function(){S.team="";save();subT();show()})}
-function setStatus(s){db.doc("teams/"+team.id).update({status:s,size:team.members.length})}
-function find(){var sz=team.members.length,mid=team.id;
-db.collection("teams").where("status","==","queue").where("size","==",sz).limit(5).get().then(function(s){var o=s.docs.filter(function(x){return x.id!=mid})[0];if(!o)return;
-var a=db.doc("teams/"+mid),b=db.doc("teams/"+o.id),m=db.collection("matches").doc();
-return db.runTransaction(function(t){return Promise.all([t.get(a),t.get(b)]).then(function(r){var A=r[0].data(),B=r[1].data();
-if(!A||!B||A.status!="queue"||B.status!="queue"||A.members.length!=B.members.length)throw 1;
-var n=Object.assign({},A.names,B.names),st=Date.now()+6000;
-t.set(m,{ta:A.members,tb:B.members,names:n,startAt:st,endAt:st+30000});
-t.update(a,{status:"playing",matchId:m.id});t.update(b,{status:"playing",matchId:m.id})})})}).catch(function(){})}
-function drawTeam(){
-invites.forEach(function(v){var p=panel("📩 Takım daveti"),r=row(p,'<div class="grow">'+esc((v.names&&v.names[v.leader])||"Oyuncu")+' seni çağırıyor ('+v.members.length+' kişi)</div>',"Kabul",function(){accept(v)});
-var b=document.createElement("button");b.className="btn2 g";b.textContent="Reddet";b.onclick=function(){db.doc("teams/"+v.id).update({invited:FV().arrayRemove(UID)})};r.appendChild(b)});
-if(!team){var p0=panel("🎮 Takım maçları");row(p0,'<div class="small">Takım kur, arkadaşlarını davet et. Takım büyüklüğüne göre 1v1, 3v3, 5v5 gibi modlarda aynı büyüklükte bir takımla 30 saniye yarışırsınız. En çok tıklayan takım kazanır, kazanan her üyeye 1 🔴 yakut verilir.</div>');row(p0,'',"Takım kur",newTeam);return}
-var n=team.members.length,lead=team.leader==UID,p=panel("🎮 Takımım · "+n+"v"+n);
-team.members.forEach(function(u){row(p,'<div class="grow'+(u==UID?" me":"")+'">'+(u==team.leader?"👑 ":"")+esc((team.names&&team.names[u])||"Oyuncu")+'</div>')});
-if(team.status=="playing")row(p,'<div class="grow">Maç başladı!</div>',"Maça dön",function(){delete doneM[team.matchId];openMatch(team.matchId)});
-else if(team.status=="queue")row(p,'<div class="grow">🔎 '+n+'v'+n+' rakip aranıyor…</div>',lead?"İptal":"",function(){setStatus("lobby")});
-else if(lead)row(p,'<div class="grow">Mod: '+n+'v'+n+'</div>',"Maç ara",function(){setStatus("queue")});
-else row(p,'<div class="small">Maçı lider başlatır.</div>');
-row(p,'',"Takımdan ayrıl",leaveTeam).lastChild.className="btn2 g";
-if(lead&&n<5&&team.status=="lobby"){var p2=panel("👥 Arkadaşını davet et");if(!friends.length)p2.innerHTML+='<div class="small">Önce Arkadaş sekmesinden arkadaş ekle.</div>';
-friends.forEach(function(f){var inT=team.members.indexOf(f.id)>=0,inv=(team.invited||[]).indexOf(f.id)>=0;
-row(p2,'<div class="grow">'+esc(f.nick||"Oyuncu")+'</div><div class="small">'+(inT?"✓ takımda":inv?"⏳ bekliyor":"")+'</div>',(inT||inv)?"":"Davet et",function(){db.doc("teams/"+team.id).update({invited:FV().arrayUnion(f.id)});toast("Davet gönderildi")})})}}
+var match=null,unMt=null,mClicks=0,mSent=0,doneM={},pinv=0,duels={in:[],out:[]},unD=[],curDuel="";
+function pd(x){var v=x.data();v.id=x.id;return v}
+function findPlayers(q,cb){q=q.trim();if(!q)return;
+db.collection("players").where("code","==",q.toUpperCase()).limit(1).get().then(function(s){if(!s.empty)return cb(s.docs.map(pd));
+return db.collection("players").where("nick","==",q).limit(5).get().then(function(s2){cb(s2.docs.map(pd))})}).catch(function(){toast("Arama başarısız")})}
+function addFriend(q){findPlayers(q,function(r){r=r.filter(function(x){return x.id!=UID});if(!r.length)return toast("Oyuncu bulunamadı");if(r.length>1)return toast("Aynı isimde birkaç oyuncu var, ID yaz");
+if(S.friends.length>=10&&S.friends.indexOf(r[0].id)<0)return toast("En fazla 10 arkadaş");
+if(S.friends.indexOf(r[0].id)<0)S.friends.push(r[0].id);save();subF();show();toast((r[0].nick||"Oyuncu")+" eklendi")})}
+function drawSocial(){
+var pf=panel("🧑 Profilim");nickRow(pf);row(pf,'<div class="small">Arkadaşların seni bu ID ile ekler.</div>');
+var pa=panel("➕ Arkadaş ekle"),r=row(pa,''),ci=inp("Oyuncu adı veya ID","");ci.style.flex="1";r.appendChild(ci);
+var b=document.createElement("button");b.className="btn2";b.textContent="Ekle";b.onclick=function(){addFriend(ci.value)};r.appendChild(b);
+var pl=panel("👥 Arkadaşlarım ("+S.friends.length+"/10)");if(!friends.length)pl.innerHTML+='<div class="small">Henüz arkadaşın yok.</div>';
+friends.forEach(function(f){var rr=row(pl,'<div class="grow">'+esc(f.nick||"Oyuncu")+'<div class="small">ID: '+esc(f.code||"-")+' · '+fmt(f.total)+' 🪙</div></div>');
+var d=document.createElement("button");d.className="btn2";d.textContent="⚔️";d.onclick=function(){sendDuel(f)};rr.appendChild(d);
+var x=document.createElement("button");x.className="btn2 g";x.textContent="✕";x.onclick=function(){if(confirm("Arkadaşlıktan çıkarılsın mı?")){S.friends=S.friends.filter(function(u){return u!=f.id});save();subF();show()}};rr.appendChild(x)});
+var p2=panel("🏆 En iyi oyuncular");players.forEach(function(x,i){row(p2,'<div>'+(i+1)+'.</div><div class="grow'+(x.id==UID?" me":"")+'">'+esc(x.nick||"Oyuncu")+'</div><div>'+fmt(x.total)+'</div>')})}
+function subDuel(){unD.forEach(function(u){u()});unD=[];
+unD.push(db.collection("duels").where("to","==",UID).onSnapshot(function(s){duels.in=s.docs.map(pd).filter(function(d){return d.status=="pending"&&Date.now()-d.ts<12e4});if(duels.in.length>pinv)toast("⚔️ Düello isteği geldi!");pinv=duels.in.length;refresh("team")},function(){}));
+unD.push(db.collection("duels").where("from","==",UID).onSnapshot(function(s){duels.out=s.docs.map(pd).filter(function(d){return Date.now()-d.ts<3e5});
+duels.out.forEach(function(d){if(d.status=="accepted"&&d.matchId&&!doneM[d.matchId]&&!match){curDuel=d.id;openMatch(d.matchId)}});refresh("team")},function(){}))}
+function sendDuel(f){if(f.id==UID)return toast("Kendinle düello olmaz 😄");
+if(duels.out.some(function(d){return d.to==f.id&&d.status=="pending"&&Date.now()-d.ts<12e4}))return toast("Zaten istek gönderdin");
+db.collection("duels").add({from:UID,fromName:S.nick||"Oyuncu",to:f.id,toName:f.nick||"Oyuncu",status:"pending",matchId:"",ts:Date.now()}).then(function(){toast("İstek gönderildi ⏳")})}
+function acceptDuel(d){if(match)return;var m=db.collection("matches").doc(),st=Date.now()+6000,n={};n[d.from]=d.fromName;n[d.to]=d.toName;
+m.set({ta:[d.from],tb:[d.to],names:n,startAt:st,endAt:st+30000}).then(function(){return db.doc("duels/"+d.id).update({status:"accepted",matchId:m.id})}).then(function(){curDuel=d.id;openMatch(m.id)}).catch(function(){toast("Kabul edilemedi")})}
+function declineDuel(d){db.doc("duels/"+d.id).delete().catch(function(){})}
+function endDuel(){if(curDuel){db.doc("duels/"+curDuel).delete().catch(function(){});curDuel=""}}
+function duelReward(){var day=Math.floor(Date.now()/864e5);if(S.rday!=day){S.rday=day;S.rn=0}if(S.rn>=5)return 0;S.rn++;S.ruby+=5;save();ok();return 5}
+function drawDuel(){
+duels.in.forEach(function(d){var p=panel("⚔️ Düello isteği"),r=row(p,'<div class="grow">'+esc(d.fromName)+' seninle düello yapmak istiyor</div>',"Kabul",function(){acceptDuel(d)});
+var b=document.createElement("button");b.className="btn2 g";b.textContent="Reddet";b.onclick=function(){declineDuel(d)};r.appendChild(b)});
+var p=panel("⚔️ Düello");row(p,'<div class="small">Oyuncu adını veya ID yaz, istek gönder. Kabul ederse 30 saniye boyunca en çok tıklayan kazanır ve 5 🔴 yakut alır (günde en fazla 5 ödüllü galibiyet).</div>');
+var r=row(p,''),qi=inp("Oyuncu adı veya ID","");qi.style.flex="1";r.appendChild(qi);
+var b=document.createElement("button");b.className="btn2";b.textContent="Gönder";b.onclick=function(){findPlayers(qi.value,function(l){l=l.filter(function(x){return x.id!=UID});if(!l.length)return toast("Oyuncu bulunamadı");if(l.length>1)return toast("Aynı isimde birkaç oyuncu var, ID yaz");sendDuel(l[0])})};r.appendChild(b);
+duels.out.filter(function(d){return d.status=="pending"&&Date.now()-d.ts<12e4}).forEach(function(d){var rr=row(p,'<div class="grow">⏳ '+esc(d.toName)+' cevap bekleniyor</div>'),c=document.createElement("button");c.className="btn2 g";c.textContent="İptal";c.onclick=function(){declineDuel(d)};rr.appendChild(c)});
+var pf=panel("👥 Arkadaşına meydan oku");if(!friends.length)pf.innerHTML+='<div class="small">Önce Arkadaş sekmesinden arkadaş ekle.</div>';
+friends.forEach(function(f){var rr=row(pf,'<div class="grow">'+esc(f.nick||"Oyuncu")+'</div>'),c=document.createElement("button");c.className="btn2";c.textContent="⚔️ Düello";c.onclick=function(){sendDuel(f)};rr.appendChild(c)})}
+function dprice(){return Math.max(2000,Math.ceil(ps()*90+pc()*60))}
+function dleft(){var d=Math.floor(Date.now()/864e5);if(S.dday!=d){S.dday=d;S.dn=0}return 30-S.dn}
+function dbuy(q){var c=dprice()*q;if(q>dleft())return toast("Günlük elmas sınırı doldu");if(S.coins<c)return no();S.coins-=c;S.dia+=q;S.dn+=q;ok();save();show()}
 function buildOverlay(){var o=document.getElementById("mo");
 if(!o){o=document.createElement("div");o.id="mo";o.innerHTML='<div id="mtitle" style="font-size:20px;font-weight:800"></div><div id="mtimer" style="font-size:54px;font-weight:800"></div><div class="score"><span id="msa"></span><span>—</span><span id="msb"></span></div><button id="mbtn">👆</button><div id="mres" style="font-size:20px;font-weight:700;min-height:28px"></div><button class="btn2" id="mclose" style="display:none">Tamam</button>';document.body.appendChild(o);
-document.getElementById("mbtn").addEventListener("pointerdown",function(e){e.preventDefault();var d=match&&match.d,t=Date.now();if(!d||t<d.startAt||t>=d.endAt)return;mClicks++;snd(400+Math.min(mClicks,60)*8,.05,"triangle");if(navigator.vibrate)navigator.vibrate(6);renderMatch()});
+document.getElementById("mbtn").addEventListener("pointerdown",function(e){e.preventDefault();var d=match&&match.d,t=Date.now();if(!d||t<d.startAt||t>=d.endAt)return;if(mClicks>=600||!rateOK())return;mClicks++;snd(400+Math.min(mClicks,60)*8,.05,"triangle");if(navigator.vibrate)navigator.vibrate(6);renderMatch()});
 document.getElementById("mclose").onclick=closeMatch}
 o.className="on";document.getElementById("mclose").style.display="none";document.getElementById("mres").textContent=""}
-function msum(arr){var t=0;arr.forEach(function(u){var v=match.s[u]||0;if(u==UID)v=Math.max(v,mClicks);t+=v});return t}
+function msum(arr){var t=0;arr.forEach(function(u){var v=Math.min(match.s[u]||0,600);if(u==UID)v=Math.max(v,mClicks);t+=v});return t}
 function renderMatch(){if(!match||!match.d)return;var d=match.d,t=Date.now(),mine=d.ta.indexOf(UID)>=0,my=mine?d.ta:d.tb,op=mine?d.tb:d.ta,n=d.ta.length,tm=document.getElementById("mtimer"),rs=document.getElementById("mres");
-document.getElementById("mtitle").textContent=n+"v"+n+" Maç";
+document.getElementById("mtitle").textContent="⚔️ Düello · "+((d.names&&d.names[op[0]])||"Rakip");
 document.getElementById("msa").textContent="Biz: "+msum(my);document.getElementById("msb").textContent="Rakip: "+msum(op);
 if(t<d.startAt){tm.textContent=Math.ceil((d.startAt-t)/1000);rs.textContent="Hazır ol!";return}
 if(t<d.endAt){tm.textContent=Math.ceil((d.endAt-t)/1000)+" sn";rs.textContent="TIKLA!";return}
 tm.textContent="Bitti";if(!match.fin){match.fin=1;pushClicks()}
 if(t<d.endAt+3000){rs.textContent="Sonuç hesaplanıyor…";return}
 var a=msum(my),b=msum(op);
-if(a>b&&!S.claimed[match.id]){S.claimed[match.id]=1;S.ruby++;save();ok();draw()}
-rs.textContent=(a>b?"🏆 Kazandınız! +1 🔴":a<b?"Kaybettiniz":"Berabere")+" ("+a+" - "+b+")";
+if(a>b&&!S.claimed[match.id]){S.claimed[match.id]=1;match.rw=duelReward();draw()}
+rs.textContent=(a>b?"🏆 Kazandın!"+(match.rw?" +"+match.rw+" 🔴":""):a<b?"Kaybettin":"Berabere")+" ("+a+" - "+b+")";
 document.getElementById("mclose").style.display="";doneM[match.id]=1}
 function pushClicks(){if(!db||!UID||!match||mClicks==mSent)return;mSent=mClicks;db.doc("players/"+UID).set({mid:match.id,mc:mClicks},{merge:true}).catch(function(){})}
 function openMatch(id){if(match||doneM[id])return;match={id:id,d:null,s:{}};mClicks=0;mSent=0;buildOverlay();
 db.doc("matches/"+id).get().then(function(s){if(match&&match.id==id&&s.exists){match.d=s.data();renderMatch()}});
 unMt=db.collection("players").where("mid","==",id).onSnapshot(function(q){if(!match||match.id!=id)return;match.s={};q.docs.forEach(function(x){match.s[x.id]=x.data().mc||0});renderMatch()})}
 function closeMatch(){var id=match&&match.id;if(id)doneM[id]=1;if(unMt)unMt();unMt=null;match=null;document.getElementById("mo").className="";
-if(team&&team.matchId==id)db.doc("teams/"+team.id).update({status:"lobby",matchId:""}).catch(function(){});show()}
+endDuel();show()}
 setInterval(function(){if(match&&match.d)renderMatch()},250);
 setInterval(pushClicks,1000);
-setInterval(function(){if(db&&UID&&team&&team.leader==UID&&team.status=="queue")find()},2500);
+var VERSION=6,LIVE="https://memirgurbuz44-source.github.io/paraklik/";
+function chkVer(){try{fetch(LIVE+"version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(j){if(j&&j.v>VERSION)showUpd()}).catch(function(){})}catch(e){}}
+function showUpd(){if(document.getElementById("upd"))return;var o=document.createElement("div");o.id="upd";o.style.cssText="position:fixed;inset:0;background:var(--bg);z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;text-align:center";o.innerHTML='<div style="font-size:48px">⬆️</div><div style="font-size:20px;font-weight:800">Yeni sürüm var</div><div class="small">Oynamaya devam etmek için oyunu güncellemelisin.</div>';var b=document.createElement("button");b.className="btn2";b.textContent="Güncelle";b.onclick=function(){location.href=LIVE+"?v="+Date.now()};o.appendChild(b);document.body.appendChild(o)}
+chkVer();setInterval(chkVer,300000);
 btn.textContent=SKINS[S.skin||0][0];show();initFB();
 </script></body></html>

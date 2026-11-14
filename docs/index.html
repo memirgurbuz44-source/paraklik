@@ -45,6 +45,8 @@ input{font:inherit;padding:8px 10px;border-radius:10px;border:1px solid var(--li
 .lane i{position:absolute;left:0;top:0;bottom:0;background:var(--ac);width:0;transition:width .25s}
 .lane.op i{background:var(--bad)}
 .lane span{position:relative;z-index:1;display:block;line-height:34px;font-weight:800;font-size:14px;padding:0 12px;text-align:left;color:#111}
+.rnd{display:block;width:100%;margin:6px 0 10px;padding:16px;border:0;border-radius:10px;background:#FFC107;color:#111;font:inherit;font-weight:900;font-size:18px;letter-spacing:1px;box-shadow:0 5px 0 #c79100;touch-action:manipulation}
+.rnd:active{transform:translateY(4px);box-shadow:0 1px 0 #c79100}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -159,7 +161,7 @@ chkBan();admInit();cloudInit();subM();subF();subDuel();subGrants();show();sync()
 function subM(){if(unM)unM();unM=null;members=[];if(!S.clan)return;unM=db.collection("players").where("clan","==",S.clan).limit(30).onSnapshot(function(s){members=s.docs.map(function(x){var v=x.data();v.id=x.id;return v}).sort(function(a,b){return b.total-a.total});refresh("clan")})}
 function subF(){if(unF)unF();unF=null;friends=[];if(!S.friends.length)return;unF=db.collection("players").where(firebase.firestore.FieldPath.documentId(),"in",S.friends.slice(0,10)).onSnapshot(function(s){friends=s.docs.map(function(x){var v=x.data();v.id=x.id;return v});refresh("social")})}
 function sync(){if(!db||!UID||banned)return;var d=Math.floor(S.total-lastSent);
-db.collection("players").doc(UID).set({nick:S.nick||"Oyuncu",nickLower:(S.nick||"Oyuncu").toLowerCase(),code:S.code,clan:S.clan||"",total:Math.floor(S.total)},{merge:true}).catch(function(){});
+db.collection("players").doc(UID).set({nick:S.nick||"Oyuncu",nickLower:(S.nick||"Oyuncu").toLowerCase(),seen:Date.now(),code:S.code,clan:S.clan||"",total:Math.floor(S.total)},{merge:true}).catch(function(){});
 if(S.clan&&d>0){var u={total:firebase.firestore.FieldValue.increment(d)};u["w"+week()]=firebase.firestore.FieldValue.increment(d);db.collection("clans").doc(S.clan).update(u).catch(function(){})}
 lastSent+=Math.max(d,0);if(cloudReady&&++syncN%3==1)cloudSave()}
 function setClan(id){S.clan=id;lastSent=S.total;save();sync();subM();show()}
@@ -231,10 +233,17 @@ m.set({ta:[d.from],tb:[d.to],names:n,created:Date.now()}).then(function(){return
 function declineDuel(d){db.doc("duels/"+d.id).delete().catch(function(){})}
 function endDuel(){if(curDuel){db.doc("duels/"+curDuel).delete().catch(function(){});curDuel=""}}
 function duelReward(){var day=Math.floor(Date.now()/864e5);if(S.rday!=day){S.rday=day;S.rn=0}if(S.rn>=5)return 0;S.rn++;S.ruby+=5;save();ok();return 5}
+function rndDuel(skip){skip=skip||{};if(match)return toast("Zaten bir maçtasın");toast("🎲 Rakip aranıyor…");
+db.collection("players").where("seen",">",Date.now()-3e5).limit(40).get().then(function(s){
+var l=s.docs.map(pd).filter(function(x){return x.id!=UID&&!skip[x.id]});
+if(!l.length){toast("Şu an aktif oyuncu yok");return}
+var f=l[Math.floor(Math.random()*l.length)];skip[f.id]=1;sendDuel(f);
+clearTimeout(rndDuel.t);rndDuel.t=setTimeout(function(){var d=duels.out.filter(function(x){return x.to==f.id&&x.status=="pending"})[0];if(d&&!match){declineDuel(d);if(Object.keys(skip).length<4)rndDuel(skip);else toast("Kimse cevap vermedi")}},20000)
+}).catch(function(){toast("Arama başarısız (Firebase kuralları?)")})}
 function drawDuel(){
 duels.in.forEach(function(d){var p=panel("⚔️ Düello isteği"),r=row(p,'<div class="grow">'+esc(d.fromName)+' seninle düello yapmak istiyor</div>',"Kabul",function(){acceptDuel(d)});
 var b=document.createElement("button");b.className="btn2 g";b.textContent="Reddet";b.onclick=function(){declineDuel(d)};r.appendChild(b)});
-var p=panel("⚔️ DÜELLO");row(p,'<div class="small">Oyuncunun adını yaz, listeden ⚔️ düğmesine bas, istek gider. Kabul ederse 30 saniyelik tıklama yarışı başlar. En çok tıklayan 5 🔴 yakut alır (günde en fazla 5 ödüllü galibiyet).</div>');
+var p=panel("⚔️ DÜELLO");var rb=document.createElement("button");rb.className="rnd";rb.textContent="🎲 RASTGELE RAKİP";rb.onclick=function(){rndDuel()};p.appendChild(rb);row(p,'<div class="small">Oyuncunun adını yaz, listeden ⚔️ düğmesine bas, istek gider. Kabul ederse 30 saniyelik tıklama yarışı başlar. En çok tıklayan 5 🔴 yakut alır (günde en fazla 5 ödüllü galibiyet).</div>');
 var r=row(p,''),qi=inp("Oyuncu adı veya ID","");qi.style.flex="1";r.appendChild(qi);
 var box=document.createElement("div");p.appendChild(box);
 function showRes(l){box.innerHTML="";l=l.filter(function(x){return x.id!=UID});if(!l.length){box.innerHTML='<div class="small">Oyuncu bulunamadı</div>';return}
@@ -312,7 +321,7 @@ unMt=db.collection("players").where("mid","==",id).onSnapshot(function(q){if(!ma
 function closeMatch(q){var id=match&&match.id;if(id)doneM[id]=1;if(unMt)unMt();unMt=null;match=null;var o=document.getElementById("mo");if(o)o.className="";endDuel();if(!q)show()}
 setInterval(function(){if(match&&match.d)renderMatch()},250);
 setInterval(pushClicks,1000);
-var VERSION=8,LIVE="https://memirgurbuz44-source.github.io/paraklik/";
+var VERSION=9,LIVE="https://memirgurbuz44-source.github.io/paraklik/";
 function chkVer(){try{fetch(LIVE+"version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(j){if(j&&j.v>VERSION)showUpd()}).catch(function(){})}catch(e){}}
 function showUpd(){if(document.getElementById("upd"))return;var o=document.createElement("div");o.id="upd";o.style.cssText="position:fixed;inset:0;background:var(--bg);z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;text-align:center";o.innerHTML='<div style="font-size:48px">⬆️</div><div style="font-size:20px;font-weight:800">Yeni sürüm var</div><div class="small">Oynamaya devam etmek için oyunu güncellemelisin.</div>';var b=document.createElement("button");b.className="btn2";b.textContent="Güncelle";b.onclick=function(){location.href=LIVE+"?v="+Date.now()};o.appendChild(b);document.body.appendChild(o)}
 chkVer();setInterval(chkVer,300000);

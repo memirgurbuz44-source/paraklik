@@ -603,8 +603,6 @@ function pd(x){var v=x.data();v.id=x.id;return v}
 function findPlayers(q,cb){
  q=String(q||"").trim();if(!q)return;
  if(!db){toast("Firebase bağlantısı kurulamadı. Sayfayı yenile.");return}
- var user=window.firebase&&firebase.auth&&firebase.auth().currentUser;
- if(!user||user.isAnonymous){toast("Oyuncu aramak ve düello yapmak için kayıtlı hesabına giriş yap.");return}
  var l=q.toLowerCase();
  db.collection("players").where("code","==",q.toUpperCase()).limit(1).get().then(function(s){
   if(!s.empty)return cb(s.docs.map(pd));

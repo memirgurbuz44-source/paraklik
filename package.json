@@ -1,7 +1,6 @@
-
 {
   "name": "paraklik",
-  "version": "1.0.1",
+  "version": "1.0.13",
   "description": "Paraklik Windows oyunu",
   "main": "main.js",
   "scripts": {

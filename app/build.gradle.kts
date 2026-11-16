@@ -11,8 +11,8 @@ android {
         applicationId = "com.example.shutdownprank"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 13
+        versionName = "1.0.13"
     }
 
     signingConfigs {

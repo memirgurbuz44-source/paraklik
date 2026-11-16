@@ -132,7 +132,7 @@ function pmDraw(){
  var active=pmListings.filter(function(x){return x.status==="active"&&x.sellerId!==UID});
  if(!active.length)row(board,'<div class="small">Henüz başka oyuncu ilanı yok.</div>');
  active.forEach(function(x){
-  var r=row(board,'<div class="grow">'+(x.ico||"🎁")+' <b>'+String(x.itemName||"Eşya")+'</b><div class="small">Satıcı: '+String(x.sellerName||"Oyuncu")+'</div></div><b>'+fmt(x.price)+' '+({coins:"🪙",ruby:"🔴",dia:"💎"}[x.currency]||"")+'</b>');
+  var r=row(board,'<div class="grow">'+(x.ico||"🎁")+' <b>'+esc(String(x.itemName||"Eşya"))+'</b><div class="small">Satıcı: '+esc(String(x.sellerName||"Oyuncu"))+'</div></div><b>'+fmt(x.price)+' '+({coins:"🪙",ruby:"🔴",dia:"💎"}[x.currency]||"")+'</b>');
   var b=document.createElement("button");b.className="btn2";b.textContent="Satın al";b.onclick=function(){
    if((S[x.currency]||0)<Number(x.price))return toast("Yeterli bakiyen yok.");
    if(pmTrades.some(function(t){return t.listingId===x.id&&t.status==="pending"}))return toast("Bu ilan için bekleyen isteğin var.");

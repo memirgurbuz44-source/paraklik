@@ -758,21 +758,23 @@ function drawDuel(){
  row(p,'<div class="small">Takımını sistem otomatik kurar. Herkes 30 saniye boyunca butona basar; en çok toplam tıklama yapan takım kazanır.</div>');
  [1,2,3,4,5].forEach(function(n){var b=document.createElement("button");b.className="btn2";b.textContent=n+"v"+n+" Takım Düellosu";b.onclick=function(){startTeamDuel(n)};p.appendChild(b)});
  var rb=document.createElement("button");rb.className="rnd";rb.textContent="🎲 RASTGELE RAKİP";rb.onclick=function(){rndDuel()};p.appendChild(rb);
- row(p,'<div class="small">Oyuncunun adını yaz, listeden ⚔️ düğmesine bas, istek gider. Kabul ederse 30 saniyelik tıklama yarışı başlar. En çok tıklayan 5 🔴 yakut alır (günde en fazla 5 ödüllü galibiyet).</div>');
- var r=row(p,''),qi=inp("Oyuncu adı veya ID","");qi.style.flex="1";r.appendChild(qi);
+ row(p,'<div class="small">Oyuncu listesinden bir isme dokun, ardından ⚔️ Düello düğmesine bas. Kabul ederse 30 saniyelik tıklama yarışı başlar. Kazanan 5 🔴 yakut alır (günde en fazla 5 ödüllü galibiyet).</div>');
  var box=document.createElement("div");p.appendChild(box);
- function showRes(l){
-  box.innerHTML="";l=l.filter(function(x){return x.id!=UID});
-  if(!l.length){box.innerHTML='<div class="small">Oyuncu bulunamadı</div>';return}
-  l.forEach(function(x){
-   var rr=row(box,'<div class="grow">'+esc(x.nick||"Oyuncu")+'<div class="small">ID: '+esc(x.code||"-")+'</div></div>');
+ var duelPlayers=(players||[]).filter(function(x){return x.id&&x.id!=UID;});
+ duelPlayers.sort(function(a,b){return String(a.nick||"").localeCompare(String(b.nick||""),"tr")});
+ if(leaderboardStatus==="loading"){
+  box.innerHTML='<div class="small">Oyuncu listesi yükleniyor…</div>';
+ }else if(leaderboardStatus==="error"){
+  box.innerHTML='<div class="small">Oyuncu listesi alınamadı. Firebase Firestore kurallarında players koleksiyonuna giriş yapmış kullanıcıların okuma izni olmalı.</div>';
+ }else if(!duelPlayers.length){
+  box.innerHTML='<div class="small">Henüz listelenecek başka oyuncu yok.</div>';
+ }else{
+  row(box,'<div class="small">Oyuncular ('+duelPlayers.length+')</div>');
+  duelPlayers.forEach(function(x){
+   var rr=row(box,'<div class="grow">👤 '+esc(x.nick||"Oyuncu")+'<div class="small">ID: '+esc(x.code||"-")+'</div></div>');
    var c=document.createElement("button");c.className="btn2";c.textContent="⚔️ Düello";c.onclick=function(){sendDuel(x)};rr.appendChild(c);
   });
  }
- var tm;qi.oninput=function(){clearTimeout(tm);if(!qi.value.trim()){box.innerHTML="";return}tm=setTimeout(function(){findPlayers(qi.value,showRes)},400)};
- function go(){findPlayers(qi.value,function(l){l=l.filter(function(x){return x.id!=UID});if(l.length==1)sendDuel(l[0]);else showRes(l)})}
- qi.onkeydown=function(e){if(e.key=="Enter")go()};
- var gb=document.createElement("button");gb.className="btn2";gb.textContent="Düello at";gb.onclick=go;r.appendChild(gb);
  duels.out.filter(function(d){return d.status=="pending"}).forEach(function(d){
   var rr=row(p,'<div class="grow">⏳ '+esc(d.toName)+' cevap bekleniyor</div>');
   var c=document.createElement("button");c.className="btn2 g";c.textContent="İptal";c.onclick=function(){declineDuel(d)};rr.appendChild(c);

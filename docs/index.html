@@ -288,7 +288,7 @@ function show(){
   }
  }else if(tab=="dia"||tab=="ruby")drawMarket(tab);
  else if(tab=="account")accountUI();
- else if(tab=="admin"&&isAdm)adminUI();
+ else if(tab=="admin")adminUI();
  else if(!db)panel("🌐 Çok oyunculu kapalı").innerHTML+='<div class="small">Arkadaş, klan ve savaş için Firebase bağlantısı gerekiyor.</div>';
  else if(tab=="social")drawSocial();
  else if(tab=="clan")drawClan();
@@ -801,12 +801,12 @@ function adminUI(){
    crypto.subtle.digest("SHA-256",new TextEncoder().encode(value)).then(function(buf){
     var hash=Array.from(new Uint8Array(buf)).map(function(x){return x.toString(16).padStart(2,"0")}).join("");
     if(hash!=="d6da131aaf3946e38aa1f9a2d8aebe5d02372ee55ae6dc567a49812630bba1e7"){codeInput.value="";return toast("Admin kodu yanlış.")};
-    try{sessionStorage.setItem("bw_admin_unlocked_"+UID,"1")}catch(e){}
+    try{localStorage.setItem("bw_admin_unlocked_"+UID,"1")}catch(e){}
     show();toast("Admin paneli açıldı.");
    }).catch(function(){toast("Kod kontrolü yapılamadı.")});
   };
   enter.appendChild(verify);
-  row(gate,'<div class="small">Bu kod ek bir giriş kilididir. Yönetici UID yetkisi de gereklidir.</div>');
+  row(gate,'<div class="small">Admin paneline ilk girişte kod gerekir. Doğru koddan sonra bu cihazda tekrar sorulmaz.</div>');
   return;
  }
  var p=panel("🛠️ Yönetici merkezi");

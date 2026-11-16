@@ -15,6 +15,7 @@ function createWindow() {
     }
   });
 
+  win.webContents.setUserAgent(win.webContents.getUserAgent() + " ButtonWarsWindows/1.0.13");
   win.loadURL("https://memirgurbuz44-source.github.io/paraklik/");
 }
 

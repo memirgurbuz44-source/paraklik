@@ -969,49 +969,6 @@ setInterval(function(){if(match&&match.d)renderMatch()},250);
 setInterval(pushClicks,1000);
 setInterval(function(){if(cloudReady&&UID&&firebase.auth().currentUser&&!firebase.auth().currentUser.isAnonymous)cloudSave()},60000);
 
-// PLATFORM BAZLI GITHUB GUNCELLEME
-var LIVE="https://memirgurbuz44-source.github.io/paraklik/";
-var RELEASE_API="https://api.github.com/repos/memirgurbuz44-source/paraklik/releases/latest";
-function getAppPlatform(){
- var ua=navigator.userAgent||"";
- var am=ua.match(/ButtonWarsAndroid\/([0-9.]+)/),wm=ua.match(/ButtonWarsWindows\/([0-9.]+)/);
- if(am)return {name:"Android",version:am[1],asset:"ButtonWars-Android.apk"};
- if(wm)return {name:"Windows",version:wm[1],asset:"ButtonWars-Windows-Setup.exe"};
- // Önceki sürümde özel etiket yoktu: WebView ve Electron imzasından tanı.
- if(/Android/i.test(ua)&&(/; wv\)/i.test(ua)||/Version\/4\.0/i.test(ua)))return {name:"Android",version:"1.0.0",asset:"ButtonWars-Android.apk"};
- if(/Electron\//i.test(ua))return {name:"Windows",version:"1.0.1",asset:"ButtonWars-Windows-Setup.exe"};
- return null;
-}
-function versionParts(v){return String(v||"0").replace(/^v/i,"").split(".").map(function(x){return parseInt(x,10)||0})}
-function versionIsNewer(a,b){
- var x=versionParts(a),y=versionParts(b);
- for(var i=0;i<Math.max(x.length,y.length);i++){if((x[i]||0)>(y[i]||0))return true;if((x[i]||0)<(y[i]||0))return false}
- return false;
-}
-function checkGitHubUpdate(){
- var platform=getAppPlatform();if(!platform)return;
- fetch(RELEASE_API,{cache:"no-store",headers:{"Accept":"application/vnd.github+json"}})
-  .then(function(r){if(!r.ok)throw new Error("GitHub sürüm bilgisi alınamadı");return r.json()})
-  .then(function(release){
-   if(!release||release.draft||release.prerelease)return;
-   var latest=String(release.tag_name||"").replace(/^v/i,"");
-   if(!latest||!versionIsNewer(latest,platform.version))return;
-   var asset=(release.assets||[]).filter(function(a){return a.name===platform.asset})[0];
-   if(asset)showPlatformUpdate(platform,latest,asset.browser_download_url);
-  }).catch(function(err){console.log("Button Wars güncelleme kontrolü:",err.message)});
-}
-function showPlatformUpdate(platform,latest,downloadUrl){
- if(document.getElementById("platform-update"))return;
- var o=document.createElement("div");o.id="platform-update";
- o.style.cssText="position:fixed;inset:0;background:var(--bg);z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:22px;text-align:center";
- var title=document.createElement("div");title.style.cssText="font-size:22px;font-weight:900";title.textContent="Button Wars güncellemesi";
- var info=document.createElement("div");info.className="small";info.textContent=platform.name+" için yeni sürüm: "+latest+" (Yüklü: "+platform.version+")";
- var note=document.createElement("div");note.className="small";note.textContent=platform.name==="Android"?"APK indirilecek. İndirme bitince bildirime dokunup kurulumu onayla.":"Windows kurulum dosyası indirilecek. İndikten sonra açıp kurulumu tamamla.";
- var b=document.createElement("a");b.className="btn2";b.textContent=platform.name+" için güncellemeyi indir";b.href=downloadUrl;b.target="_blank";b.rel="noopener";b.style.cssText="text-decoration:none;display:inline-block";
- var later=document.createElement("button");later.className="btn2 g";later.textContent="Daha sonra";later.onclick=function(){o.remove()};
- o.appendChild(title);o.appendChild(info);o.appendChild(note);o.appendChild(b);o.appendChild(later);document.body.appendChild(o);
-}
-checkGitHubUpdate();setInterval(checkGitHubUpdate,60000);
 btn.textContent=SKINS[S.skin||0][0];show();initFB();
 </script>
 <script src="features.js?v=13"></script>

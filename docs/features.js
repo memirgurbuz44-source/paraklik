@@ -121,19 +121,28 @@ function pmDraw(){
   var r=row(sell,'<div class="grow">'+it.ico+' <b>'+it.name+'</b><div class="small">Adet: '+S.inventory[it.id]+'</div></div>');
   var price=document.createElement("input");price.type="number";price.min="1";price.value=marketValue(it);price.placeholder="Fiyat";price.style.width="90px";r.appendChild(price);
   var cur=document.createElement("select");cur.innerHTML='<option value="coins">🪙 Para</option><option value="ruby">🔴 Yakut</option><option value="dia">💎 Elmas</option>';r.appendChild(cur);
+   var kind=document.createElement("select");kind.innerHTML='<option value="fixed">Sabit fiyat</option><option value="auction">Açık artırma · 24 saat</option>';r.appendChild(kind);
   var b=document.createElement("button");b.className="btn2";b.textContent="İlan ver";b.onclick=function(){
    var n=Math.floor(+price.value);if(!Number.isSafeInteger(n)||n<1)return toast("Geçerli fiyat gir.");
    if((S.inventory[it.id]||0)<1||S.equipped[it.slot]===it.id)return toast("Eşya artık satılamıyor.");
    S.inventory[it.id]--;save();
-   db.collection("playerMarket").add({sellerId:UID,sellerName:S.nick||"Oyuncu",itemId:it.id,itemName:it.name,ico:it.ico,price:n,currency:cur.value,status:"active",created:Date.now()}).then(function(){toast("İlan pazara eklendi.");show()}).catch(function(){S.inventory[it.id]++;save();toast("İlan açılamadı. Firebase kurallarını kontrol et.");});
+   db.collection("playerMarket").add({sellerId:UID,sellerName:S.nick||"Oyuncu",itemId:it.id,itemName:it.name,ico:it.ico,price:n,currency:cur.value,status:"active",listingType:kind.value,currentBid:n,topBidderId:"",topBidderName:"",bidCount:0,endsAt:kind.value==="auction"?Date.now()+86400000:0,created:Date.now()}).then(function(){toast("İlan pazara eklendi.");show()}).catch(function(){S.inventory[it.id]++;save();toast("İlan açılamadı. Firebase kurallarını kontrol et.");});
   };r.appendChild(b);
  });
  var board=panel("🛒 Diğer oyuncuların ilanları");
- var active=pmListings.filter(function(x){return x.status==="active"&&x.sellerId!==UID});
+ var active=pmListings.filter(function(x){return x.status==="active"&&x.sellerId!==UID&&(x.listingType!=="auction"||Date.now()<Number(x.endsAt||0))});
  if(!active.length)row(board,'<div class="small">Henüz başka oyuncu ilanı yok.</div>');
  active.forEach(function(x){
   var r=row(board,'<div class="grow">'+(x.ico||"🎁")+' <b>'+esc(String(x.itemName||"Eşya"))+'</b><div class="small">Satıcı: '+esc(String(x.sellerName||"Oyuncu"))+'</div></div><b>'+fmt(x.price)+' '+({coins:"🪙",ruby:"🔴",dia:"💎"}[x.currency]||"")+'</b>');
-  var b=document.createElement("button");b.className="btn2";b.textContent="Satın al";b.onclick=function(){
+   var auction=x.listingType==="auction",shown=auction?Number(x.currentBid||x.price):Number(x.price);
+   if(auction){r.firstChild.innerHTML += '<div class="small">Açık artırma · '+Math.max(0,Math.ceil((Number(x.endsAt)-Date.now())/3600000))+' saat kaldı · '+(x.bidCount||0)+' teklif</div>';r.lastChild.textContent=fmt(shown)+' '+({coins:"🪙",ruby:"🔴",dia:"💎"}[x.currency]||"");}
+  var b=document.createElement("button");b.className="btn2";b.textContent=x.listingType==="auction"?"Teklif ver":"Satın al";b.onclick=function(){
+    if(auction){
+     if(Date.now()>=Number(x.endsAt||0))return toast("Açık artırma sona ermiş.");
+     var offer=Number(prompt("Mevcut teklif: "+shown+" · Yeni teklifini gir:",String(shown+1)));
+     if(!Number.isSafeInteger(offer)||offer<=shown)return toast("Teklif mevcut fiyattan yüksek olmalı.");
+     db.runTransaction(function(tx){var ref=db.doc("playerMarket/"+x.id);return tx.get(ref).then(function(s){var v=s.data()||{};if(v.status!=="active"||Date.now()>=Number(v.endsAt||0)||offer<=Number(v.currentBid||v.price))throw new Error("Teklif artık geçerli değil.");tx.update(ref,{currentBid:offer,topBidderId:UID,topBidderName:S.nick||"Oyuncu",bidCount:Number(v.bidCount||0)+1});});}).then(function(){toast("Teklifin kaydedildi.");}).catch(function(e){toast(e.message||"Teklif gönderilemedi.");});return;
+    }
    if((S[x.currency]||0)<Number(x.price))return toast("Yeterli bakiyen yok.");
    if(pmTrades.some(function(t){return t.listingId===x.id&&t.status==="pending"}))return toast("Bu ilan için bekleyen isteğin var.");
    if(!confirm(x.itemName+" için "+x.price+" ödeme yaparak satın alma isteği gönderilsin mi?"))return;
@@ -141,6 +150,15 @@ function pmDraw(){
    db.collection("marketTrades").add({listingId:x.id,sellerId:x.sellerId,buyerId:UID,buyerName:S.nick||"Oyuncu",itemId:x.itemId,itemName:x.itemName,price:Number(x.price),currency:x.currency,status:"pending",created:Date.now()}).then(function(){toast("İstek satıcıya gönderildi.")}).catch(function(){S[x.currency]+=Number(x.price);save();toast("İstek gönderilemedi, ödeme iade edildi.")});
   };r.appendChild(b);
  });
+  pmListings.filter(function(x){return x.status==="active"&&x.listingType==="auction"&&Number(x.endsAt)<=Date.now()&&x.topBidderId===UID}).forEach(function(x){
+   var r=row(board,'<div class="grow"><b>🏆 Açık artırmayı kazandın: '+esc(String(x.itemName||"Eşya"))+'</b><div class="small">Kazanan teklif: '+fmt(x.currentBid)+' '+({coins:"🪙",ruby:"🔴",dia:"💎"}[x.currency]||"")+'</div></div>');
+   var pay=document.createElement("button");pay.className="btn2";pay.textContent="Öde ve teslim al";pay.onclick=function(){
+    if((S[x.currency]||0)<Number(x.currentBid))return toast("Kazanan teklifi ödemek için bakiyen yetmiyor.");
+    if(pmTrades.some(function(t){return t.listingId===x.id&&t.buyerId===UID&&t.status==="pending"}))return toast("Ödeme isteğin zaten satıcıda.");
+    S[x.currency]-=Number(x.currentBid);save();
+    db.collection("marketTrades").add({listingId:x.id,sellerId:x.sellerId,buyerId:UID,buyerName:S.nick||"Oyuncu",itemId:x.itemId,itemName:x.itemName,price:Number(x.currentBid),currency:x.currency,status:"pending",created:Date.now()}).then(function(){toast("Ödeme isteği satıcıya gönderildi.");}).catch(function(){S[x.currency]+=Number(x.currentBid);save();toast("İstek gönderilemedi, bakiye iade edildi.");});
+   };r.appendChild(pay);
+  });
  var req=panel("📨 Gelen satın alma istekleri"),pending=pmTrades.filter(function(t){return t.status==="pending"});
  if(!pending.length)row(req,'<div class="small">Bekleyen istek yok.</div>');
  pending.forEach(function(t){

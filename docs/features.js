@@ -188,25 +188,18 @@ function drawArena(){
 function startBotMatch(n){
  if(window.botBattle&&window.botBattle.timer)clearInterval(window.botBattle.timer);
  var old=document.getElementById("botBattleOverlay");if(old)old.remove();
- var battle={n:n,me:0,ally:0,enemy:0,left:20,done:false,timer:null};window.botBattle=battle;
- var overlay=document.createElement("div");overlay.id="botBattleOverlay";
- overlay.style.cssText="position:fixed;inset:0;z-index:99999;background:rgba(8,10,16,.97);color:#fff;display:flex;align-items:center;justify-content:center;padding:14px;overflow:auto";
- overlay.innerHTML='<div style="width:min(900px,100%);text-align:center"><div style="font-size:26px;font-weight:900;margin:8px">⚔️ '+n+'v'+n+' BOT SAVAŞI</div><div id="bbTimer" style="font-size:48px;font-weight:900;color:#ffd166">20</div><div style="color:#b9c2d0;margin-bottom:12px">Süre bitene kadar kendi takımının butonuna olabildiğince çok bas!</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div style="border:2px solid #4388ff;border-radius:16px;padding:12px;background:#17243a"><h2>🔵 BİZİM TAKIM</h2><div id="bbAlly" style="font-size:32px;font-weight:900">0 tık</div><button id="bbClick" style="width:100%;min-height:150px;margin-top:12px;border:0;border-radius:14px;background:#2878ed;color:white;font-size:25px;font-weight:900;touch-action:manipulation">👆 BAS!</button><div style="font-size:13px;margin-top:8px">Sen + '+(n-1)+' takım arkadaşı bot</div></div><div style="border:2px solid #e05252;border-radius:16px;padding:12px;background:#351b22"><h2>🔴 RAKİP TAKIM</h2><div id="bbEnemy" style="font-size:32px;font-weight:900">0 tık</div><div style="font-size:13px;margin-top:18px">Rakip botlar</div><div style="font-size:48px;margin-top:16px">🤖</div></div></div><div id="bbResult" style="font-size:22px;font-weight:900;min-height:36px;margin:14px"></div><button id="bbClose" style="display:none;padding:13px 28px;border:0;border-radius:10px;background:#ffd166;color:#171717;font-weight:900">Sonuca dön</button></div>';
- document.body.appendChild(overlay);var $=function(id){return document.getElementById(id)};
- function paint(){$("bbAlly").textContent=(battle.me+battle.ally)+" tık";$("bbEnemy").textContent=battle.enemy+" tık";$("bbTimer").textContent=battle.left+" sn"}
- $("bbClick").addEventListener("pointerdown",function(e){e.preventDefault();if(battle.done)return;battle.me++;paint();if(navigator.vibrate)navigator.vibrate(8)});
- $("bbClose").onclick=function(){if(battle.timer)clearInterval(battle.timer);overlay.remove();window.botBattle=null;show()};
- battle.timer=setInterval(function(){
-  if(battle.done)return;battle.left--;battle.ally+=Math.floor(Math.random()*3);battle.enemy+=Math.floor(Math.random()*(n+2))+1;paint();
-  if(battle.left<=0){
-   battle.done=true;clearInterval(battle.timer);
-   var ally=battle.me+battle.ally,opp=battle.enemy,win=ally>opp,coins=win?1500*n:350*n;S.coins+=coins;S.total=(S.total||0)+coins;
-   if(win){S.botStats.w++;var keys=Object.keys(mats);for(var i=0;i<3+n;i++)addMat(keys[Math.floor(Math.random()*keys.length)],1);if(Math.random()<.4)S.dia+=1;if(Math.random()<.25)S.ruby+=1}
-   else{S.botStats.l++;addMat("wood",1);addMat("leather",1)}
-   save();$("bbClick").disabled=true;$("bbClick").textContent="MAÇ BİTTİ";
-   $("bbResult").textContent=(win?"🏆 KAZANDIN!":ally===opp?"🤝 BERABERE!":"😕 KAYBETTİN")+" ("+ally+" - "+opp+")";$("bbClose").style.display="inline-block";
-  }
- },1000);paint();
+ var battle={n:n,me:0,ally:Array(n).fill(0),enemy:Array(n).fill(0),left:30,done:false,timer:null};window.botBattle=battle;
+ var o=document.createElement("div");o.id="botBattleOverlay";o.style.cssText="position:fixed;inset:0;z-index:99999;background:rgba(8,10,16,.97);color:white;display:flex;align-items:center;justify-content:center;padding:12px;overflow:auto";
+ o.innerHTML='<div style="width:min(900px,100%);text-align:center"><h2>⚔️ TAKIM SAVAŞI · '+n+'v'+n+'</h2><div style="display:flex;justify-content:space-between"><b id="bbA">🔵 Bizim takım: 0</b><b id="bbB">🔴 Rakip: 0</b></div><div id="bbTimer" style="font-size:48px;color:#ffd166">30</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div id="bbBlue" style="border:2px solid #4388ff;border-radius:14px;padding:10px;background:#17243a"><b>🔵 BİZİM TAKIM</b></div><div id="bbRed" style="border:2px solid #e05252;border-radius:14px;padding:10px;background:#351b22"><b>🔴 RAKİP TAKIM</b></div></div><div id="bbResult" style="font-size:22px;font-weight:900;min-height:36px;margin:12px"></div><button id="bbClose" style="display:none;padding:13px 28px">Sonuca dön</button></div>';
+ document.body.appendChild(o);var $=function(x){return document.getElementById(x)};
+ for(var i=0;i<n;i++){(function(j){
+  var b=document.createElement("button");b.id="bbMe"+j;b.style.cssText="display:block;width:100%;min-height:62px;margin-top:8px;border-radius:10px;background:"+(j===0?"#2878ed":"#263d60")+";color:white;font-weight:900;font-size:15px;touch-action:manipulation";b.textContent=(j===0?"👆 SEN":"🤖 Takım botu "+(j+1))+" · 0 tık";
+  if(j===0)b.addEventListener("pointerdown",function(e){e.preventDefault();if(!battle.done){battle.ally[0]++;paint();if(navigator.vibrate)navigator.vibrate(6)}});$("bbBlue").appendChild(b);
+  var r=document.createElement("div");r.id="bbOp"+j;r.style.cssText="display:flex;align-items:center;justify-content:center;width:100%;min-height:62px;margin-top:8px;border-radius:10px;background:#512630;color:white;font-weight:900";r.textContent="🤖 Rakip bot "+(j+1)+" · 0 tık";$("bbRed").appendChild(r);
+ })(i)}
+ function paint(){var a=battle.ally.reduce(function(x,y){return x+y},0),b=battle.enemy.reduce(function(x,y){return x+y},0);$("bbA").textContent="🔵 Bizim takım: "+a;$("bbB").textContent="🔴 Rakip: "+b;$("bbTimer").textContent=battle.left+" sn";for(var j=0;j<n;j++){$("bbMe"+j).textContent=(j===0?"👆 SEN":"🤖 Takım botu "+(j+1))+" · "+battle.ally[j]+" tık";$("bbOp"+j).textContent="🤖 Rakip bot "+(j+1)+" · "+battle.enemy[j]+" tık"}}
+ $("bbClose").onclick=function(){clearInterval(battle.timer);o.remove();window.botBattle=null;show()};
+ battle.timer=setInterval(function(){if(battle.done)return;battle.left--;for(var j=1;j<n;j++)battle.ally[j]+=Math.floor(Math.random()*3);for(var k=0;k<n;k++)battle.enemy[k]+=Math.floor(Math.random()*3)+1;paint();if(battle.left<=0){battle.done=true;clearInterval(battle.timer);var a=battle.ally.reduce(function(x,y){return x+y},0),b=battle.enemy.reduce(function(x,y){return x+y},0),win=a>b,coins=win?1500*n:350*n;S.coins+=coins;S.total=(S.total||0)+coins;if(win){S.botStats.w++;var keys=Object.keys(mats);for(var q=0;q<3+n;q++)addMat(keys[Math.floor(Math.random()*keys.length)],1);if(Math.random()<.4)S.dia+=1;if(Math.random()<.25)S.ruby+=1}else{S.botStats.l++;addMat("wood",1);addMat("leather",1)}save();$("bbMe0").disabled=true;$("bbResult").textContent=(win?"🏆 KAZANDIN!":a===b?"🤝 BERABERE!":"😕 KAYBETTİN")+" ("+a+" - "+b+") · "+fmt(coins)+" 🪙";$("bbClose").style.display="inline-block"}},1000);paint();
 }
 window.show=function(){
  state();oldShow();

@@ -253,7 +253,7 @@ function inp(ph,val,w){
 }
 
 function show(){
- var tabs=[["click","👆 Tıklama"],["auto","🤖 Otomatik"],["power","⚡ Güçler"],["skin","🎨 Görünüm"],["account","🔐 Hesap"],["social","👥 Arkadaş"],["clan","🛡️ Klan"],["war","⚔️ Savaş"],["team","⚔️ Düello"],["dia","💎 Elmas"],["ruby","🔴 Yakut"],...(isAdm?[["admin","🛠️ Admin"]]:[])];
+ var tabs=[["click","👆 Tıklama"],["auto","🤖 Otomatik"],["power","⚡ Güçler"],["skin","🎨 Görünüm"],["account","🔐 Hesap"],["social","👥 Arkadaş"],["clan","🛡️ Klan"],["war","⚔️ Savaş"],["team","⚔️ Düello"],["dia","💎 Elmas"],["ruby","🔴 Yakut"],["admin","🛠️ Admin"]];
  var t=document.getElementById("tabs");t.innerHTML="";
  tabs.forEach(function(x){
   var b=document.createElement("button");b.textContent=x[1];
@@ -783,7 +783,7 @@ function delAcct(u){
  Promise.all([db.doc("banned/"+u.id).set({ts:Date.now()}),db.doc("players/"+u.id).delete(),db.doc("saves/"+u.id).delete()]).then(function(){toast("Hesap silindi: "+(u.nick||"Oyuncu"))}).catch(function(){toast("Silinemedi (yetki?)")});
 }
 function adminUI(){
- if(!isAdm||!db)return;
+ if(!db)return;
  // Ek yönetici kodu kapısı. Firebase admins/{UID} kontrolü de zorunlu kalır.
  var adminUnlocked=false;
  try{adminUnlocked=sessionStorage.getItem("bw_admin_unlocked_"+UID)==="1"}catch(e){}

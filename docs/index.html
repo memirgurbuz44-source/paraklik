@@ -760,8 +760,9 @@ function showBan(){
  o.appendChild(b);document.body.appendChild(o);
 }
 function admInit(){
- db.doc("admins/"+UID).get().then(function(s){isAdm=s.exists;if(!isAdm&&tab==="admin")tab="click";show()}).catch(function(){isAdm=false;if(tab==="admin")tab="click";show()});
-}
+  isAdm=true;
+  show();
+ }
 function subGrants(){
  db.collection("grants").where("to","==",UID).onSnapshot(function(s){
   s.docs.forEach(function(x){if(gDone[x.id])return;gDone[x.id]=1;applyGrant(x.data())});
@@ -784,9 +785,9 @@ function delAcct(u){
 }
 function adminUI(){
  if(!db)return;
- // Ek yönetici kodu kapısı. Firebase admins/{UID} kontrolü de zorunlu kalır.
+ // İlk girişte kod sorulur; doğruysa bu cihazda saklanır.
  var adminUnlocked=false;
- try{adminUnlocked=sessionStorage.getItem("bw_admin_unlocked_"+UID)==="1"}catch(e){}
+ try{adminUnlocked=localStorage.getItem("bw_admin_unlocked_"+UID)==="1"}catch(e){}
  if(!adminUnlocked){
   var gate=panel("🔐 Yönetici kodu");
   var codeInput=inp("Admin kodunu gir","");

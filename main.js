@@ -1,6 +1,5 @@
 
 const { app, BrowserWindow } = require("electron");
-const path = require("path");
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -11,11 +10,12 @@ function createWindow() {
     autoHideMenuBar: true,
     webPreferences: {
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      sandbox: true
     }
   });
 
-  win.loadFile(path.join(__dirname, "docs", "index.html"));
+  win.loadURL("https://memirgurbuz44-source.github.io/paraklik/");
 }
 
 app.whenReady().then(createWindow);

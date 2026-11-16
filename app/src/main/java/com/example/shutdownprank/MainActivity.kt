@@ -9,6 +9,12 @@ import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.webkit.DownloadListener
+import android.app.DownloadManager
+import android.net.Uri
+import android.os.Environment
+import android.webkit.URLUtil
+import android.widget.Toast
 
 class MainActivity : Activity() {
     private lateinit var web: WebView
@@ -24,6 +30,24 @@ class MainActivity : Activity() {
         web.settings.javaScriptEnabled = true
         web.settings.domStorageEnabled = true
         web.settings.mediaPlaybackRequiresUserGesture = false
+        web.settings.userAgentString = web.settings.userAgentString + " ButtonWarsAndroid/1.0.13"
+        web.setDownloadListener(DownloadListener { url, userAgent, contentDisposition, mimeType, _ ->
+            try {
+                val fileName = URLUtil.guessFileName(url, contentDisposition, mimeType)
+                val request = DownloadManager.Request(Uri.parse(url))
+                    .setTitle(fileName)
+                    .setDescription("Button Wars güncellemesi indiriliyor")
+                    .setMimeType(mimeType ?: "application/vnd.android.package-archive")
+                    .addRequestHeader("User-Agent", userAgent)
+                    .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                    .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)
+                val manager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
+                manager.enqueue(request)
+                Toast.makeText(this, "Güncelleme indiriliyor. Bitince bildirime dokun.", Toast.LENGTH_LONG).show()
+            } catch (e: Exception) {
+                Toast.makeText(this, "İndirme başlatılamadı: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        })
         web.webChromeClient = WebChromeClient()
         web.webViewClient = object : WebViewClient() {
             override fun onReceivedError(

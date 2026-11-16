@@ -601,14 +601,23 @@ function changeId(v){
 var match=null,unMt=null,mClicks=0,mSent=0,doneM={},pinv=0,duels={in:[],out:[]},unD=[],curDuel="";
 function pd(x){var v=x.data();v.id=x.id;return v}
 function findPlayers(q,cb){
- q=q.trim();if(!q)return;var l=q.toLowerCase();
+ q=String(q||"").trim();if(!q)return;
+ if(!db){toast("Firebase bağlantısı kurulamadı. Sayfayı yenile.");return}
+ var user=window.firebase&&firebase.auth&&firebase.auth().currentUser;
+ if(!user||user.isAnonymous){toast("Oyuncu aramak ve düello yapmak için kayıtlı hesabına giriş yap.");return}
+ var l=q.toLowerCase();
  db.collection("players").where("code","==",q.toUpperCase()).limit(1).get().then(function(s){
   if(!s.empty)return cb(s.docs.map(pd));
-  return db.collection("players").where("nickLower",">=",l).where("nickLower","<=",l+"\uf8ff").limit(6).get().then(function(s2){
+  return db.collection("players").where("nickLower",">=",l).where("nickLower","<=",l+"\\uf8ff").limit(6).get().then(function(s2){
    if(!s2.empty)return cb(s2.docs.map(pd));
    return db.collection("players").where("nick","==",q).limit(5).get().then(function(s3){cb(s3.docs.map(pd))});
   });
- }).catch(function(){toast("Arama başarısız (Firebase kuralları?)")});
+ }).catch(function(e){
+  console.error("Button Wars player search failed:",e);
+  var code=e&&e.code?e.code:"unknown";
+  var message=code==="permission-denied"?"Firebase okuma izni reddedildi":code==="failed-precondition"?"Firestore sorgusu için indeks gerekiyor":code==="unavailable"?"Firebase bağlantısı yok":code==="unauthenticated"?"Giriş yapılmamış":"Firebase sorgusu başarısız";
+  toast("Oyuncu araması: "+message+" ("+code+")");
+ });
 }
 function addFriend(q){
  findPlayers(q,function(r){

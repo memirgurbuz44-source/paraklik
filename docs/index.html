@@ -644,7 +644,7 @@ function drawSocial(){
 }
 function subDuel(){
  unD.forEach(function(u){u()});unD=[];
- var er=function(){if(!subDuel.er){subDuel.er=1;toast("Düello bağlantı hatası: Firebase kurallarını kontrol et")}};
+ var er=function(e){console.error("Duel listener failed",e);if(!subDuel.er){subDuel.er=1;toast("Düello bağlantı hatası: "+((e&&e.code)||"Firebase izin/bağlantı sorunu"))}};
  unD.push(db.collection("duels").where("to","==",UID).onSnapshot(function(s){
   var incoming=s.docs.map(pd);
   duels.in=incoming.filter(function(d){return d.status=="pending"});
@@ -660,25 +660,29 @@ function subDuel(){
  },er));
 }
 function sendDuel(f){
+ if(!db||!UID)return toast("Düello için kayıtlı hesabına giriş yapmalısın.");
+ if(!f||!f.id)return toast("Rakip oyuncu bulunamadı.");
  if(f.id==UID)return toast("Kendinle düello olmaz 😄");
+ if(match)return toast("Önce devam eden maçını bitir.");
  if(duels.out.some(function(d){return d.to==f.id&&d.status=="pending"}))return toast("Zaten istek gönderdin");
- var col=db.collection("duels");
- col.where("from","==",UID).get().then(function(s){return Promise.all(s.docs.map(function(x){return x.ref.delete()}))}).then(function(){
-  return col.add({from:UID,fromName:S.nick||"Oyuncu",to:f.id,toName:f.nick||"Oyuncu",status:"pending",matchId:"",ts:Date.now()});
- }).then(function(){toast("⚔️ İstek gönderildi → "+(f.nick||"Oyuncu"))}).catch(function(){toast("İstek gönderilemedi (Firebase kuralları?)")});
+ db.collection("duels").add({from:UID,fromName:S.nick||"Oyuncu",to:f.id,toName:f.nick||"Oyuncu",status:"pending",matchId:"",ts:Date.now()})
+  .then(function(){toast("⚔️ İstek gönderildi → "+(f.nick||"Oyuncu"))})
+  .catch(function(e){console.error("Duel request failed",e);toast("İstek gönderilemedi: "+((e&&e.code)||"Firebase bağlantı/izin hatası"))});
 }
 function acceptDuel(d){
+ if(!db||!UID)return toast("Düello için hesabına giriş yapmalısın.");
  if(match)return toast("Zaten bir maçtasın");
  if(d.groupId){
   db.doc("duels/"+d.id).update({status:"accepted",acceptedAt:Date.now()})
    .then(function(){toast("Takım düellosuna katıldın. Diğer oyuncular bekleniyor…")})
-   .catch(function(){toast("Kabul edilemedi (Firebase kuralları?)")});
+   .catch(function(e){console.error("Team duel accept failed",e);toast("Kabul edilemedi: "+((e&&e.code)||"Firebase hatası"))});
   return;
  }
  var m=db.collection("matches").doc(),n={};n[d.from]=d.fromName;n[d.to]=d.toName;
- m.set({ta:[d.from],tb:[d.to],names:n,created:Date.now(),mode:1}).then(function(){
-  return db.doc("duels/"+d.id).update({status:"accepted",matchId:m.id});
- }).then(function(){curDuel=d.id;openMatch(m.id)}).catch(function(){toast("Kabul edilemedi (Firebase kuralları?)")});
+ var startAt=Date.now()+7000;
+ m.set({ta:[d.from],tb:[d.to],names:n,created:Date.now(),startAt:startAt,endAt:startAt+30000,mode:1}).then(function(){
+  return db.doc("duels/"+d.id).update({status:"accepted",matchId:m.id,acceptedAt:Date.now()});
+ }).then(function(){curDuel=d.id;openMatch(m.id)}).catch(function(e){console.error("Duel accept failed",e);toast("Düello başlatılamadı: "+((e&&e.code)||"Firebase hatası"));m.delete().catch(function(){})});
 }
 function startTeamDuel(size){
  if(match)return toast("Zaten bir maçtasın");
@@ -1129,8 +1133,10 @@ function openMatch(id){
  db.doc("matches/"+id).get().then(function(s){
   if(!match||match.id!=id)return;
   if(!s.exists||Date.now()-(s.data().created||0)>6e5){closeMatch(1);return}
-  match.d=s.data();match.st=Date.now()+5000;match.en=match.st+30000;
-  db.doc("players/"+UID).set({mid:id,mc:0,md:false},{merge:true}).catch(function(){});
+  match.d=s.data();
+  match.st=Number(match.d.startAt)||((Number(match.d.created)||Date.now())+7000);
+  match.en=Number(match.d.endAt)||(match.st+30000);
+  db.doc("players/"+UID).set({mid:id,mc:0,md:false},{merge:true}).catch(function(e){console.error("Duel player state write failed",e);toast("Maç verisi gönderilemedi: "+((e&&e.code)||"izin hatası"))});
   renderMatch();
  }).catch(function(){toast("Maç yüklenemedi");closeMatch(1)});
  unMt=db.collection("players").where("mid","==",id).onSnapshot(function(q){

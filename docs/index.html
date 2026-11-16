@@ -784,7 +784,7 @@ function delAcct(u){
  Promise.all([db.doc("banned/"+u.id).set({ts:Date.now()}),db.doc("players/"+u.id).delete(),db.doc("saves/"+u.id).delete()]).then(function(){toast("Hesap silindi: "+(u.nick||"Oyuncu"))}).catch(function(){toast("Silinemedi (yetki?)")});
 }
 function adminUI(){
- if(!db)return;
+ // Admin kod ekranı Firebase bağlantısından bağımsız açılır.
  // İlk girişte kod sorulur; doğruysa bu cihazda saklanır.
  var adminUnlocked=false;
  try{adminUnlocked=localStorage.getItem("bw_admin_unlocked_"+(UID||"device"))==="1"}catch(e){}
@@ -810,6 +810,7 @@ function adminUI(){
   row(gate,'<div class="small">Admin paneline ilk girişte kod gerekir. Doğru koddan sonra bu cihazda tekrar sorulmaz.</div>');
   return;
  }
+ if(!db){var wait=panel("🛠️ Yönetici merkezi");row(wait,'<div class="small">Kod kabul edildi. Firebase bağlantısı hazır değil; bağlantı gelince Admin sekmesine tekrar bas.</div>');return;}
  var p=panel("🛠️ Yönetici merkezi");
  row(p,'<div class="small">Oyuncu ara, hesabını yönet, kaynak ve eşyalarını düzenle. Bu işlemler oyunun Firebase verilerine uygulanır.</div>');
  var t=inp("Oyuncu adı veya oyuncu ID","");t.style.flex="1";row(p,'').appendChild(t);

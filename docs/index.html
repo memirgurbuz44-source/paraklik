@@ -67,6 +67,40 @@ input{font:inherit;padding:8px 10px;border-radius:10px;border:1px solid var(--li
 .badge{box-shadow:0 3px 0 #81510c}
 @media(max-width:520px){.stage{min-height:320px}.top{padding:9px}.panel{border-radius:16px}}
 
+
+/* PREMIUM POLISH */
+:root{--bg:#090d18;--card:#111a2b;--text:#f5f7ff;--muted:#9baac4;--line:rgba(151,180,225,.16);--ac:#ffc44d;--ac2:#d88916;--ok:#55e6a5;--bad:#ff7185}
+body{background:radial-gradient(ellipse at 50% -15%,#23375b 0%,#10192b 38%,#080c16 78%);background-attachment:fixed;letter-spacing:.01em}
+.wrap{max-width:860px;padding:clamp(12px,3vw,24px)}
+.top{position:relative;padding:20px 18px 16px;margin:0 0 12px;border:1px solid rgba(174,199,239,.16);border-radius:24px;background:linear-gradient(145deg,rgba(30,46,72,.9),rgba(13,20,34,.94));box-shadow:0 18px 55px #0007,inset 0 1px #ffffff12;overflow:hidden}
+.top:before{content:"";position:absolute;inset:0 0 auto;height:2px;background:linear-gradient(90deg,transparent,#ffd36a,#6caeff,transparent)}
+.top .coins{font-size:clamp(38px,9vw,58px);line-height:1.05;letter-spacing:-.045em;text-shadow:0 4px 24px #ffbd4b40}
+.stats{line-height:1.7}
+.badge{background:linear-gradient(135deg,#ffe39b,#f0a92d);box-shadow:0 3px 12px #f6b83c30}
+.stage{min-height:clamp(290px,48vw,390px);margin:12px 0 18px;border:1px solid rgba(128,168,230,.18);border-radius:28px;overflow:hidden;background:radial-gradient(ellipse at 50% 46%,#1c3558 0%,#101d33 48%,#0b1220 100%);box-shadow:inset 0 1px #ffffff14,0 22px 55px #0008}
+.stage:after{content:"";position:absolute;inset:auto 10% 0;height:1px;background:linear-gradient(90deg,transparent,#6e9edb88,transparent)}
+#bw3d{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+#btn{position:relative;z-index:2;width:min(48vw,230px);align-self:center;margin:auto;opacity:0;cursor:pointer}
+#combo{z-index:3;top:16px;font-size:15px;letter-spacing:.12em;text-shadow:0 2px 12px #000}
+.tabs{gap:8px;padding:5px 2px 12px;scrollbar-width:thin;scrollbar-color:#435777 transparent}
+.tabs button{border:1px solid rgba(155,185,231,.18);background:linear-gradient(160deg,#1b2940,#111a2a);border-radius:12px;padding:10px 15px;box-shadow:0 4px 12px #0003;transition:transform .18s,border-color .18s,background .18s}
+.tabs button:hover{transform:translateY(-2px);border-color:#eab64e88}
+.tabs button.on{background:linear-gradient(135deg,#ffe08a,#e9a62d);color:#241707;border-color:#ffe49a;box-shadow:0 5px 18px #e9a62d35}
+.item,.panel{background:linear-gradient(145deg,rgba(27,40,62,.98),rgba(15,23,38,.98));border-color:rgba(153,184,232,.17);box-shadow:0 8px 24px #0003,inset 0 1px #ffffff0a}
+.item{border-radius:17px;padding:14px;transition:transform .18s,border-color .18s,box-shadow .18s}
+.item:not(:disabled):hover{transform:translateY(-3px);border-color:#e9b34d88;box-shadow:0 13px 28px #0005}
+.item:disabled{filter:saturate(.55)}
+.ico{filter:drop-shadow(0 3px 5px #0006)}
+.panel{border-radius:18px;padding:15px;margin-top:10px}
+.panel h3{font-size:17px;letter-spacing:.01em}
+input{background:#0a1220;border-color:#344663}
+.btn2{background:linear-gradient(135deg,#ffe08a,#e9a52c);box-shadow:0 4px 12px #e9a52c24;transition:transform .16s,filter .16s}
+.btn2:hover{filter:brightness(1.08);transform:translateY(-1px)}
+.btn2:active{transform:translateY(1px)}
+#toast{border:1px solid #ffffff20;background:linear-gradient(135deg,#263a59,#111b2d);box-shadow:0 12px 35px #0009}
+@media(max-width:420px){.top{border-radius:18px;padding:16px 12px}.stage{border-radius:20px;min-height:280px}.tabs button{padding:9px 12px;font-size:13px}.item{padding:11px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -231,7 +265,7 @@ var stage=document.getElementById("stage"),btn=document.getElementById("btn"),co
   function resize(){var w=stage.clientWidth,h=stage.clientHeight;if(!w||!h)return;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h)}
   window.addEventListener("resize",resize);
   if(window.ResizeObserver)new ResizeObserver(resize).observe(stage);
-  function animate(){requestAnimationFrame(animate);var t=clock.getElapsedTime();coin.rotation.y=Math.sin(t*.65)*.19;coin.rotation.x=Math.sin(t*.8)*.07+(down?.13:0);coin.position.y=Math.sin(t*1.4)*.11;ring.rotation.z=t*.12;gems.forEach(function(m){m.rotation.x+=.006;m.rotation.y+=.009;m.position.y=m.userData.y+Math.sin(t*1.2+m.userData.phase)*.18});renderer.render(scene,camera)}
+  function animate(){requestAnimationFrame(animate);var t=clock.getElapsedTime();coin.rotation.y=Math.sin(t*.65)*.19;coin.rotation.x=Math.sin(t*.8)*.07+(down ? 0.13 : 0);coin.position.y=Math.sin(t*1.4)*.11;ring.rotation.z=t*.12;gems.forEach(function(m){m.rotation.x+=.006;m.rotation.y+=.009;m.position.y=m.userData.y+Math.sin(t*1.2+m.userData.phase)*.18});renderer.render(scene,camera)}
   animate();
   button.addEventListener("pointerdown",function(){down=true;coin.scale.setScalar(.93);setTimeout(function(){down=false;coin.scale.setScalar(1)},110)});
  }catch(e){console.warn("3D scene unavailable",e)}

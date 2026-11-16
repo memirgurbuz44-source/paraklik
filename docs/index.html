@@ -887,8 +887,12 @@ var LIVE="https://memirgurbuz44-source.github.io/paraklik/";
 var RELEASE_API="https://api.github.com/repos/memirgurbuz44-source/paraklik/releases/latest";
 function getAppPlatform(){
  var ua=navigator.userAgent||"";
- if(ua.indexOf("ButtonWarsAndroid/")>=0)return {name:"Android",version:(ua.match(/ButtonWarsAndroid\/([0-9.]+)/)||[])[1]||"0.0.0",asset:"ButtonWars-Android.apk"};
- if(ua.indexOf("ButtonWarsWindows/")>=0)return {name:"Windows",version:(ua.match(/ButtonWarsWindows\/([0-9.]+)/)||[])[1]||"0.0.0",asset:"ButtonWars-Windows-Setup.exe"};
+ var am=ua.match(/ButtonWarsAndroid\/([0-9.]+)/),wm=ua.match(/ButtonWarsWindows\/([0-9.]+)/);
+ if(am)return {name:"Android",version:am[1],asset:"ButtonWars-Android.apk"};
+ if(wm)return {name:"Windows",version:wm[1],asset:"ButtonWars-Windows-Setup.exe"};
+ // Önceki sürümde özel etiket yoktu: WebView ve Electron imzasından tanı.
+ if(/Android/i.test(ua)&&(/; wv\)/i.test(ua)||/Version\/4\.0/i.test(ua)))return {name:"Android",version:"1.0.0",asset:"ButtonWars-Android.apk"};
+ if(/Electron\//i.test(ua))return {name:"Windows",version:"1.0.1",asset:"ButtonWars-Windows-Setup.exe"};
  return null;
 }
 function versionParts(v){return String(v||"0").replace(/^v/i,"").split(".").map(function(x){return parseInt(x,10)||0})}

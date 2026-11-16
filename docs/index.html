@@ -786,8 +786,8 @@ function delAcct(u){
 function adminUI(){
  // Admin kod ekranı Firebase bağlantısından bağımsız açılır.
  // İlk girişte kod sorulur; doğruysa bu cihazda saklanır.
- var adminUnlocked=false;
- try{adminUnlocked=localStorage.getItem("bw_admin_unlocked")==="1"}catch(e){}
+ var adminUnlocked=window.bwAdminUnlocked===true;
+ try{adminUnlocked=adminUnlocked||localStorage.getItem("bw_admin_unlocked")==="1"}catch(e){}
  if(!adminUnlocked){
   var gate=panel("🔐 Yönetici kodu");
   var codeInput=inp("Admin kodunu gir","");
@@ -802,10 +802,10 @@ function adminUI(){
    crypto.subtle.digest("SHA-256",new TextEncoder().encode(value)).then(function(buf){
     var hash=Array.from(new Uint8Array(buf)).map(function(x){return x.toString(16).padStart(2,"0")}).join("");
     if(hash!=="d6da131aaf3946e38aa1f9a2d8aebe5d02372ee55ae6dc567a49812630bba1e7"){codeInput.value="";return toast("Admin kodu yanlış.")};
+    window.bwAdminUnlocked=true;
     try{localStorage.setItem("bw_admin_unlocked","1")}catch(e){}
     tab="admin";
     show();
-    setTimeout(function(){var content=document.getElementById("content");if(content&&!content.querySelector(".panel")){content.innerHTML="";adminUI()}},0);
     toast("Admin paneli açıldı.");
    }).catch(function(){toast("Kod kontrolü yapılamadı.")});
   };

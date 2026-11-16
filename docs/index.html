@@ -761,9 +761,9 @@ function showBan(){
 }
 function admInit(){
   isAdm=true;
-  show();
+  if(tab==="admin")show();
  }
-function subGrants(){
+ function subGrants(){
  db.collection("grants").where("to","==",UID).onSnapshot(function(s){
   s.docs.forEach(function(x){if(gDone[x.id])return;gDone[x.id]=1;applyGrant(x.data())});
  },function(){});
@@ -787,7 +787,7 @@ function adminUI(){
  if(!db)return;
  // İlk girişte kod sorulur; doğruysa bu cihazda saklanır.
  var adminUnlocked=false;
- try{adminUnlocked=localStorage.getItem("bw_admin_unlocked_"+UID)==="1"}catch(e){}
+ try{adminUnlocked=localStorage.getItem("bw_admin_unlocked_"+(UID||"device"))==="1"}catch(e){}
  if(!adminUnlocked){
   var gate=panel("🔐 Yönetici kodu");
   var codeInput=inp("Admin kodunu gir","");
@@ -802,7 +802,7 @@ function adminUI(){
    crypto.subtle.digest("SHA-256",new TextEncoder().encode(value)).then(function(buf){
     var hash=Array.from(new Uint8Array(buf)).map(function(x){return x.toString(16).padStart(2,"0")}).join("");
     if(hash!=="d6da131aaf3946e38aa1f9a2d8aebe5d02372ee55ae6dc567a49812630bba1e7"){codeInput.value="";return toast("Admin kodu yanlış.")};
-    try{localStorage.setItem("bw_admin_unlocked_"+UID,"1")}catch(e){}
+    try{localStorage.setItem("bw_admin_unlocked_"+(UID||"device"),"1")}catch(e){}
     show();toast("Admin paneli açıldı.");
    }).catch(function(){toast("Kod kontrolü yapılamadı.")});
   };

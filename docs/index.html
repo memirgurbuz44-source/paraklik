@@ -472,12 +472,15 @@ function subDuel(){
  unD.forEach(function(u){u()});unD=[];
  var er=function(){if(!subDuel.er){subDuel.er=1;toast("Düello bağlantı hatası: Firebase kurallarını kontrol et")}};
  unD.push(db.collection("duels").where("to","==",UID).onSnapshot(function(s){
-  duels.in=s.docs.map(pd).filter(function(d){return d.status=="pending"});
+  var incoming=s.docs.map(pd);
+  duels.in=incoming.filter(function(d){return d.status=="pending"});
+  incoming.forEach(function(d){if(d.status=="accepted"&&d.matchId&&!doneM[d.matchId]&&!match){curDuel=d.id;openMatch(d.matchId)}});
   if(duels.in.length>pinv)toast("⚔️ Düello isteği geldi!");
   pinv=duels.in.length;refresh("team");
  },er));
  unD.push(db.collection("duels").where("from","==",UID).onSnapshot(function(s){
   duels.out=s.docs.map(pd);
+  processTeamGroups(duels.out);
   duels.out.forEach(function(d){if(d.status=="accepted"&&d.matchId&&!doneM[d.matchId]&&!match){curDuel=d.id;openMatch(d.matchId)}});
   refresh("team");
  },er));
@@ -492,10 +495,51 @@ function sendDuel(f){
 }
 function acceptDuel(d){
  if(match)return toast("Zaten bir maçtasın");
+ if(d.groupId){
+  db.doc("duels/"+d.id).update({status:"accepted",acceptedAt:Date.now()})
+   .then(function(){toast("Takım düellosuna katıldın. Diğer oyuncular bekleniyor…")})
+   .catch(function(){toast("Kabul edilemedi (Firebase kuralları?)")});
+  return;
+ }
  var m=db.collection("matches").doc(),n={};n[d.from]=d.fromName;n[d.to]=d.toName;
- m.set({ta:[d.from],tb:[d.to],names:n,created:Date.now()}).then(function(){
+ m.set({ta:[d.from],tb:[d.to],names:n,created:Date.now(),mode:1}).then(function(){
   return db.doc("duels/"+d.id).update({status:"accepted",matchId:m.id});
  }).then(function(){curDuel=d.id;openMatch(m.id)}).catch(function(){toast("Kabul edilemedi (Firebase kuralları?)")});
+}
+function startTeamDuel(size){
+ if(match)return toast("Zaten bir maçtasın");
+ if(window.teamQueueBusy)return toast("Takım düellosu isteği zaten hazırlanıyor");
+ window.teamQueueBusy=true;toast(size+"v"+size+" için oyuncular aranıyor…");
+ db.collection("players").where("seen",">",Date.now()-3e5).limit(60).get().then(function(q){
+  var pool=q.docs.map(pd).filter(function(p){return p.id!==UID}),unique={};
+  pool=pool.filter(function(p){if(unique[p.id])return false;unique[p.id]=1;return true});
+  for(var i=pool.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),tmp=pool[i];pool[i]=pool[j];pool[j]=tmp}
+  pool=pool.slice(0,size*2-1);
+  if(pool.length<size*2-1){window.teamQueueBusy=false;toast("Bu mod için yeterli aktif oyuncu yok. Gerekli rakip/arkadaş: "+(size*2-1));return}
+  var group="team_"+UID+"_"+Date.now()+"_"+Math.random().toString(36).slice(2,7),col=db.collection("duels");
+  return Promise.all(pool.map(function(p){return col.add({from:UID,fromName:S.nick||"Oyuncu",to:p.id,toName:p.nick||"Oyuncu",status:"pending",matchId:"",groupId:group,mode:size,ts:Date.now()})}))
+   .then(function(){window.teamQueueBusy=false;window.teamQueueTimeouts=window.teamQueueTimeouts||{};window.teamQueueTimeouts[group]=setTimeout(function(){
+    var mine=duels.out.filter(function(d){return d.groupId===group&&d.status==="pending"});
+    mine.forEach(function(d){db.doc("duels/"+d.id).delete().catch(function(){})});
+    if(mine.length)toast("Kabul edilmeyen davetler nedeniyle takım maçı iptal edildi.");
+   },45000);toast(size+"v"+size+" davetleri gönderildi. Kabul edilmeleri bekleniyor…")});
+ }).catch(function(){window.teamQueueBusy=false;toast("Oyuncular bulunamadı veya bağlantı hatası.")});
+}
+function processTeamGroups(out){
+ var groups={};out.forEach(function(d){if(d.groupId)(groups[d.groupId]||(groups[d.groupId]=[])).push(d)});
+ Object.keys(groups).forEach(function(g){
+  var arr=groups[g],mode=Number(arr[0].mode)||2,expected=mode*2-1;
+  if(arr.length!==expected||arr.some(function(d){return d.status!=="accepted"}))return;
+  if(arr.some(function(d){return !!d.matchId}))return;
+  window.teamGroupsStarting=window.teamGroupsStarting||{};if(window.teamGroupsStarting[g])return;window.teamGroupsStarting[g]=true;
+  var ids=[UID],names={};names[UID]=S.nick||"Oyuncu";
+  arr.forEach(function(d){ids.push(d.to);names[d.to]=d.toName||"Oyuncu"});
+  for(var i=ids.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),tmp=ids[i];ids[i]=ids[j];ids[j]=tmp}
+  var m=db.collection("matches").doc(),data={ta:ids.slice(0,mode),tb:ids.slice(mode),names:names,created:Date.now(),mode:mode};
+  m.set(data).then(function(){return Promise.all(arr.map(function(d){return db.doc("duels/"+d.id).update({matchId:m.id})}))})
+   .then(function(){if(window.teamQueueTimeouts&&window.teamQueueTimeouts[g])clearTimeout(window.teamQueueTimeouts[g]);curDuel=arr[0].id;if(!match)openMatch(m.id);toast(mode+"v"+mode+" maçı başladı!")})
+   .catch(function(){window.teamGroupsStarting[g]=false;toast("Takım maçı başlatılamadı. Firebase kurallarını kontrol et.")});
+ });
 }
 function declineDuel(d){db.doc("duels/"+d.id).delete().catch(function(){});}
 function endDuel(){if(curDuel){db.doc("duels/"+curDuel).delete().catch(function(){});curDuel=""}}
@@ -523,7 +567,10 @@ function drawDuel(){
   var p=panel("⚔️ Düello isteği"),r=row(p,'<div class="grow">'+esc(d.fromName)+' seninle düello yapmak istiyor</div>',"Kabul",function(){acceptDuel(d)});
   var b=document.createElement("button");b.className="btn2 g";b.textContent="Reddet";b.onclick=function(){declineDuel(d)};r.appendChild(b);
  });
- var p=panel("⚔️ DÜELLO"),rb=document.createElement("button");rb.className="rnd";rb.textContent="🎲 RASTGELE RAKİP";rb.onclick=function(){rndDuel()};p.appendChild(rb);
+ var p=panel("⚔️ DÜELLO");
+ row(p,'<div class="small">Takımını sistem otomatik kurar. Herkes 30 saniye boyunca butona basar; en çok toplam tıklama yapan takım kazanır.</div>');
+ [1,2,3,4,5].forEach(function(n){var b=document.createElement("button");b.className="btn2";b.textContent=n+"v"+n+" Takım Düellosu";b.onclick=function(){startTeamDuel(n)};p.appendChild(b)});
+ var rb=document.createElement("button");rb.className="rnd";rb.textContent="🎲 RASTGELE RAKİP";rb.onclick=function(){rndDuel()};p.appendChild(rb);
  row(p,'<div class="small">Oyuncunun adını yaz, listeden ⚔️ düğmesine bas, istek gider. Kabul ederse 30 saniyelik tıklama yarışı başlar. En çok tıklayan 5 🔴 yakut alır (günde en fazla 5 ödüllü galibiyet).</div>');
  var r=row(p,''),qi=inp("Oyuncu adı veya ID","");qi.style.flex="1";r.appendChild(qi);
  var box=document.createElement("div");p.appendChild(box);
@@ -834,7 +881,7 @@ setInterval(pushClicks,1000);
 setInterval(function(){if(cloudReady&&UID&&firebase.auth().currentUser&&!firebase.auth().currentUser.isAnonymous)cloudSave()},60000);
 
 // SÜRÜM KONTROLÜ
-var VERSION=10,LIVE="https://memirgurbuz44-source.github.io/paraklik/";
+var VERSION=11,LIVE="https://memirgurbuz44-source.github.io/paraklik/";
 function chkVer(){
  try{
   fetch(LIVE+"version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(j){if(j&&j.v>VERSION)showUpd()}).catch(function(){});

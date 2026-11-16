@@ -747,7 +747,7 @@ function rndDuel(skip){
    var d=duels.out.filter(function(x){return x.to==f.id&&x.status=="pending"})[0];
    if(d&&!match){declineDuel(d);if(Object.keys(skip).length<4)rndDuel(skip);else toast("Kimse cevap vermedi")}
   },20000);
- }).catch(function(){toast("Arama başarısız (Firebase kuralları?)")});
+ }).catch(function(e){console.error("Button Wars random duel search failed:",e);var code=e&&e.code?e.code:"unknown";var msg=code==="permission-denied"?"Firestore okuma izni reddedildi":code==="unauthenticated"?"Oturum açılmamış":code==="unavailable"?"Firebase bağlantısı kurulamadı":code==="failed-precondition"?"Firestore sorgusu/indeksi hatalı":"Beklenmeyen Firebase hatası";toast("Rakip arama: "+msg+" ("+code+")")});
 }
 function drawDuel(){
  duels.in.forEach(function(d){

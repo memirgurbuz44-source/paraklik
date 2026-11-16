@@ -519,9 +519,11 @@ function startTeamDuel(size){
   var group="team_"+UID+"_"+Date.now()+"_"+Math.random().toString(36).slice(2,7),col=db.collection("duels");
   return Promise.all(pool.map(function(p){return col.add({from:UID,fromName:S.nick||"Oyuncu",to:p.id,toName:p.nick||"Oyuncu",status:"pending",matchId:"",groupId:group,mode:size,ts:Date.now()})}))
    .then(function(){window.teamQueueBusy=false;window.teamQueueTimeouts=window.teamQueueTimeouts||{};window.teamQueueTimeouts[group]=setTimeout(function(){
-    var mine=duels.out.filter(function(d){return d.groupId===group&&d.status==="pending"});
-    mine.forEach(function(d){db.doc("duels/"+d.id).delete().catch(function(){})});
-    if(mine.length)toast("Kabul edilmeyen davetler nedeniyle takım maçı iptal edildi.");
+    db.collection("duels").where("from","==",UID).get().then(function(q){
+     var mine=q.docs.filter(function(x){return x.data().groupId===group});
+     return Promise.all(mine.map(function(x){return x.ref.delete().catch(function(){})}));
+    });
+    toast("45 saniyede tüm oyuncular katılmadığı için takım maçı iptal edildi.");
    },45000);toast(size+"v"+size+" davetleri gönderildi. Kabul edilmeleri bekleniyor…")});
  }).catch(function(){window.teamQueueBusy=false;toast("Oyuncular bulunamadı veya bağlantı hatası.")});
 }
@@ -830,8 +832,8 @@ function msum(arr){
 function renderMatch(){
  if(!match||!match.d||!match.en)return;
  var d=match.d,t=Date.now(),mine=d.ta.indexOf(UID)>=0,my=mine?d.ta:d.tb,op=mine?d.tb:d.ta;
- var tm=document.getElementById("mtimer"),rs=document.getElementById("mres"),a=msum(my),b=msum(op),mx=Math.max(100,a,b),on=(d.names&&d.names[op[0]])||"Rakip";
- document.getElementById("msa").textContent="Sen: "+a;document.getElementById("msb").textContent=on+": "+b;
+ var tm=document.getElementById("mtimer"),rs=document.getElementById("mres"),a=msum(my),b=msum(op),mx=Math.max(100,a,b),teamMode=Number(d.mode)>1;
+ document.getElementById("msa").textContent=(teamMode?"Takımın: ":"Sen: ")+a;document.getElementById("msb").textContent=(teamMode?"Rakip takım: ":((d.names&&d.names[op[0]])||"Rakip")+": ")+b;
  document.getElementById("lme").style.width=Math.min(100,a/mx*100)+"%";document.getElementById("lop").style.width=Math.min(100,b/mx*100)+"%";
  if(t<match.st){tm.textContent=Math.ceil((match.st-t)/1000);rs.textContent="Hazır ol!";return}
  if(t<match.en){tm.textContent=Math.ceil((match.en-t)/1000)+" sn";rs.textContent="TIKLA!";return}

@@ -803,15 +803,18 @@ function adminUI(){
     var hash=Array.from(new Uint8Array(buf)).map(function(x){return x.toString(16).padStart(2,"0")}).join("");
     if(hash!=="d6da131aaf3946e38aa1f9a2d8aebe5d02372ee55ae6dc567a49812630bba1e7"){codeInput.value="";return toast("Admin kodu yanlış.")};
     try{localStorage.setItem("bw_admin_unlocked","1")}catch(e){}
-    show();toast("Admin paneli açıldı.");
+    tab="admin";
+    show();
+    setTimeout(function(){var content=document.getElementById("content");if(content&&!content.querySelector(".panel")){content.innerHTML="";adminUI()}},0);
+    toast("Admin paneli açıldı.");
    }).catch(function(){toast("Kod kontrolü yapılamadı.")});
   };
   enter.appendChild(verify);
   row(gate,'<div class="small">Admin paneline ilk girişte kod gerekir. Doğru koddan sonra bu cihazda tekrar sorulmaz.</div>');
   return;
  }
- if(!db){var wait=panel("🛠️ Yönetici merkezi");row(wait,'<div class="small">Kod kabul edildi. Firebase bağlantısı hazır değil; bağlantı gelince Admin sekmesine tekrar bas.</div>');return;}
  var p=panel("🛠️ Yönetici merkezi");
+ if(!db)row(p,'<div class="small" style="color:var(--bad)">⚠️ Firebase bağlantısı hazır değil. Yönetici ekranı açıldı; oyuncu arama ve işlemler bağlantı kurulana kadar çalışmaz.</div>');
  row(p,'<div class="small">Oyuncu ara, hesabını yönet, kaynak ve eşyalarını düzenle. Bu işlemler oyunun Firebase verilerine uygulanır.</div>');
  var t=inp("Oyuncu adı veya oyuncu ID","");t.style.flex="1";row(p,'').appendChild(t);
  var selected=null,info=panel("👤 Hedef oyuncu");

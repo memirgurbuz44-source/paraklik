@@ -252,7 +252,7 @@ var stage=document.getElementById("stage"),btn=document.getElementById("btn"),co
   var key=new THREE.DirectionalLight(0xffd27a,2.1);key.position.set(-4,6,8);key.castShadow=true;scene.add(key);
   var rimLight=new THREE.PointLight(0x287dff,3.2,22);rimLight.position.set(4,1,4);scene.add(rimLight);
   var purpleLight=new THREE.PointLight(0x9a4dff,2.2,18);purpleLight.position.set(-4,-1,1);scene.add(purpleLight);
-  var mat=function(c,m,r,e){return new THREE.MeshStandardMaterial({color:c,metalness:m||0,roughness:r==null?.4:r,emissive:e||0})};
+  var mat=function(c,m,r,e){return new THREE.MeshStandardMaterial({color:c,metalness:m||0,roughness:r==null ? 0.4 : r,emissive:e||0})};
   var gold=mat(0xf2aa24,.9,.2),goldBright=mat(0xffdf80,.82,.16),goldDark=mat(0x80500e,.8,.28);
   var blueMetal=mat(0x24466f,.82,.25),silver=mat(0x9db9d9,.88,.2),dark=mat(0x101d31,.75,.28);
   var arena=new THREE.Group();scene.add(arena);
@@ -264,7 +264,7 @@ var stage=document.getElementById("stage"),btn=document.getElementById("btn"),co
   var rim=new THREE.Mesh(new THREE.TorusGeometry(1.39,.12,18,100),goldBright);coin.add(rim);
   var inner=new THREE.Mesh(new THREE.TorusGeometry(1.08,.035,10,90),goldDark);inner.position.z=.18;coin.add(inner);
   var starShape=new THREE.Shape();starShape.moveTo(0,.76);
-  for(var q=1;q<10;q++){var a=q*Math.PI/5-Math.PI/2,rr=q%2?.31:.76;starShape.lineTo(Math.cos(a)*rr,Math.sin(a)*rr)}
+  for(var q=1;q<10;q++){var a=q*Math.PI/5-Math.PI/2,rr=q%2 ? 0.31 : 0.76;starShape.lineTo(Math.cos(a)*rr,Math.sin(a)*rr)}
   starShape.closePath();
   var star=new THREE.Mesh(new THREE.ExtrudeGeometry(starShape,{depth:.12,bevelEnabled:true,bevelSegments:3,steps:1,bevelSize:.035,bevelThickness:.035}),goldBright);star.position.z=.19;coin.add(star);
   var runeRing=new THREE.Mesh(new THREE.TorusGeometry(1.78,.025,8,120),mat(0x5caaff,.7,.2,0x153c75));coin.add(runeRing);
@@ -312,10 +312,10 @@ var stage=document.getElementById("stage"),btn=document.getElementById("btn"),co
   if(window.ResizeObserver){resizeObserver=new ResizeObserver(resize);resizeObserver.observe(stage)}
   function animate(){
    raf=requestAnimationFrame(animate);var t=clock.getElapsedTime();
-   coin.rotation.y=Math.sin(t*.52)*.2;coin.rotation.x=Math.sin(t*.8)*.055+(down?.16:0);coin.position.y=.05+Math.sin(t*1.15)*.12;coin.rotation.z=Math.sin(t*.3)*.035;
+   coin.rotation.y=Math.sin(t*.52)*.2;coin.rotation.x=Math.sin(t*.8)*.055+(down ? 0.16 : 0);coin.position.y=.05+Math.sin(t*1.15)*.12;coin.rotation.z=Math.sin(t*.3)*.035;
    runeRing.rotation.z=-t*.32;portal.rotation.z=t*.12;hero.rotation.y=Math.sin(t*.7)*.16;hero.position.y=-.82+Math.sin(t*1.5)*.055;
    floaters.forEach(function(o){o.rotation.x+=.004*o.userData.speed;o.rotation.y+=.007*o.userData.speed;o.position.y=o.userData.y+Math.sin(t*o.userData.speed+o.userData.phase)*.16});
-   pillars.forEach(function(o,i){o.children[1].rotation.y=t*(i%2?.8:-.8)});
+   pillars.forEach(function(o,i){o.children[1].rotation.y=t*(i%2 ? 0.8 : -0.8)});
    rimLight.position.x=Math.sin(t*.7)*4;purpleLight.intensity=1.7+Math.sin(t*1.2)*.45;
    renderer.render(scene,camera);
   }

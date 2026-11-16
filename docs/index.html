@@ -805,11 +805,18 @@ function adminUI(){
     window.bwAdminUnlocked=true;
     try{localStorage.setItem("bw_admin_unlocked","1")}catch(e){}
     tab="admin";
-    try{show()}catch(e){}
     var adminContent=document.getElementById("content");
-    if(adminContent){adminContent.innerHTML="";try{adminUI()}catch(e){adminContent.textContent="Admin paneli açılamadı: "+(e&&e.message?e.message:"bilinmeyen hata")}}
     var adminTabs=document.getElementById("tabs");
-    if(adminTabs){var adminButtons=adminTabs.querySelectorAll("button");adminButtons.forEach(function(b){b.classList.toggle("on",b.textContent.indexOf("Admin")>=0)})}
+    try{
+     if(typeof window.show==="function")window.show();
+     else show();
+    }catch(renderError){
+     if(adminContent)adminContent.innerHTML='<div class="panel"><h3>🛠️ Yönetici merkezi</h3><div class="small">Ekran çizim hatası: '+String(renderError.message||renderError)+'</div></div>';
+    }
+    if(adminTabs){Array.from(adminTabs.querySelectorAll("button")).forEach(function(b){b.classList.toggle("on",b.textContent.indexOf("Admin")>=0)})}
+    if(adminContent&&!adminContent.querySelector(".panel")){
+     adminContent.innerHTML='<div class="panel"><h3>🛠️ Yönetici merkezi</h3><p>Panel yüklenemedi. Sayfayı yenileyip tekrar dene.</p></div>';
+    }
     toast("Admin paneli açıldı.");
    }).catch(function(){toast("Kod kontrolü yapılamadı.")});
   };

@@ -805,7 +805,11 @@ function adminUI(){
     window.bwAdminUnlocked=true;
     try{localStorage.setItem("bw_admin_unlocked","1")}catch(e){}
     tab="admin";
-    show();
+    try{show()}catch(e){}
+    var adminContent=document.getElementById("content");
+    if(adminContent){adminContent.innerHTML="";try{adminUI()}catch(e){adminContent.textContent="Admin paneli açılamadı: "+(e&&e.message?e.message:"bilinmeyen hata")}}
+    var adminTabs=document.getElementById("tabs");
+    if(adminTabs){var adminButtons=adminTabs.querySelectorAll("button");adminButtons.forEach(function(b){b.classList.toggle("on",b.textContent.indexOf("Admin")>=0)})}
     toast("Admin paneli açıldı.");
    }).catch(function(){toast("Kod kontrolü yapılamadı.")});
   };

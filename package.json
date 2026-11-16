@@ -5,7 +5,7 @@
   "description": "Paraklik Windows oyunu",
   "main": "main.js",
   "scripts": {
-    "build:win": "electron-builder --win nsis"
+    "build:win": "electron-builder --win nsis --publish never"
   },
   "devDependencies": {
     "electron": "^39.0.0",

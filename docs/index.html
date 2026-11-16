@@ -253,7 +253,7 @@ function inp(ph,val,w){
 }
 
 function show(){
- var tabs=[["click","👆 Tıklama"],["auto","🤖 Otomatik"],["power","⚡ Güçler"],["skin","🎨 Görünüm"],["account","🔐 Hesap"],["social","👥 Arkadaş"],["clan","🛡️ Klan"],["war","⚔️ Savaş"],["team","⚔️ Düello"],["dia","💎 Elmas"],["ruby","🔴 Yakut"]];
+ var tabs=[["click","👆 Tıklama"],["auto","🤖 Otomatik"],["power","⚡ Güçler"],["skin","🎨 Görünüm"],["account","🔐 Hesap"],["social","👥 Arkadaş"],["clan","🛡️ Klan"],["war","⚔️ Savaş"],["team","⚔️ Düello"],["dia","💎 Elmas"],["ruby","🔴 Yakut"],...(isAdm?[["admin","🛠️ Admin"]]:[])];
  var t=document.getElementById("tabs");t.innerHTML="";
  tabs.forEach(function(x){
   var b=document.createElement("button");b.textContent=x[1];
@@ -288,6 +288,7 @@ function show(){
   }
  }else if(tab=="dia"||tab=="ruby")drawMarket(tab);
  else if(tab=="account")accountUI();
+ else if(tab=="admin"&&isAdm)adminUI();
  else if(!db)panel("🌐 Çok oyunculu kapalı").innerHTML+='<div class="small">Arkadaş, klan ve savaş için Firebase bağlantısı gerekiyor.</div>';
  else if(tab=="social")drawSocial();
  else if(tab=="clan")drawClan();
@@ -759,7 +760,7 @@ function showBan(){
  o.appendChild(b);document.body.appendChild(o);
 }
 function admInit(){
- db.doc("admins/"+UID).get().then(function(s){isAdm=s.exists;refresh("social")}).catch(function(){isAdm=false});
+ db.doc("admins/"+UID).get().then(function(s){isAdm=s.exists;if(!isAdm&&tab==="admin")tab="click";show()}).catch(function(){isAdm=false;if(tab==="admin")tab="click";show()});
 }
 function subGrants(){
  db.collection("grants").where("to","==",UID).onSnapshot(function(s){
@@ -773,31 +774,76 @@ function applyGrant(g){
  if(g.ruby){S.ruby+=+g.ruby;t.push(g.ruby+" 🔴")}
  if(g.idr){S.idRights=(S.idRights||0)+(+g.idr);t.push(g.idr+" ID hakkı")}
  if(g.all){S.own.x2=1;S.own.dbonus=1;S.own.rmult=1;t.push("tüm kalıcı bonuslar")}
+ if(g.items){S.inventory=S.inventory||{};Object.keys(g.items).forEach(function(k){S.inventory[k]=(S.inventory[k]||0)+Number(g.items[k]||0)});t.push("ekipmanlar")}
+ if(g.materials){S.materials=S.materials||{};Object.keys(g.materials).forEach(function(k){S.materials[k]=(S.materials[k]||0)+Number(g.materials[k]||0)});t.push("malzemeler")}
+ if(g.unlockAll){S.skins={0:1,1:1,2:1,3:1,4:1,5:1};S.idRights=(S.idRights||0)+10;S.own.x2=1;S.own.dbonus=1;S.own.rmult=1;t.push("tüm kilitler")}
  save();ok();draw();toast("🎁 Admin hediyesi: "+t.join(", "));
 }
 function delAcct(u){
  Promise.all([db.doc("banned/"+u.id).set({ts:Date.now()}),db.doc("players/"+u.id).delete(),db.doc("saves/"+u.id).delete()]).then(function(){toast("Hesap silindi: "+(u.nick||"Oyuncu"))}).catch(function(){toast("Silinemedi (yetki?)")});
 }
 function adminUI(){
- if(!isAdm)return;
- var p=panel("🛠️ Admin paneli");
- row(p,'<div class="small">Oyuncu adı veya ID yaz. Boş bırakırsan kendine işlem yaparsın.</div>');
- var t=inp("Oyuncu adı / ID (boş = ben)","");t.style.flex="1";row(p,'').appendChild(t);
- var f={};
- [["coins","🪙 Para"],["dia","💎 Elmas"],["ruby","🔴 Yakut"],["idr","🪪 ID hakkı"]].forEach(function(x){
-  var i=inp(x[1],"");i.type="number";i.style.flex="1";f[x[0]]=i;row(p,'').appendChild(i);
- });
+ if(!isAdm||!db)return;
+ var p=panel("🛠️ Yönetici merkezi");
+ row(p,'<div class="small">Oyuncu ara, hesabını yönet, kaynak ve eşyalarını düzenle. Bu işlemler oyunun Firebase verilerine uygulanır.</div>');
+ var t=inp("Oyuncu adı veya oyuncu ID","");t.style.flex="1";row(p,'').appendChild(t);
+ var selected=null,info=panel("👤 Hedef oyuncu");
+ var status=document.createElement("div");status.className="small";status.textContent="Henüz oyuncu seçilmedi.";info.appendChild(status);
  function who(cb){
-  var q=t.value.trim();if(!q)return cb({id:UID,nick:S.nick||"ben"});
-  findPlayers(q,function(l){if(!l.length)return toast("Oyuncu bulunamadı");if(l.length>1)return toast("Birden fazla oyuncu, ID yaz");cb(l[0])});
+  var q=t.value.trim();if(!q){toast("Önce oyuncu adı veya ID yaz.");return}
+  findPlayers(q,function(list){
+   if(!list.length)return toast("Oyuncu bulunamadı.");
+   if(list.length>1)return toast("Birden fazla sonuç var; oyuncu ID'sini yaz.");
+   selected=list[0];status.textContent=(selected.nick||"Oyuncu")+" · ID: "+(selected.code||selected.id)+" · UID: "+selected.id;
+   cb&&cb(selected);
+  });
  }
- function give(o){who(function(u){o.to=u.id;o.ts=Date.now();db.collection("grants").add(o).then(function(){toast("Gönderildi → "+(u.nick||"Oyuncu"))}).catch(function(){toast("Yetki yok")})})}
- var r4=row(p,'');
- var g1=document.createElement("button");g1.className="btn2";g1.textContent="Gönder";
- g1.onclick=function(){give({coins:+f.coins.value||0,dia:+f.dia.value||0,ruby:+f.ruby.value||0,idr:+f.idr.value||0})};r4.appendChild(g1);
- var g2=document.createElement("button");g2.className="btn2";g2.textContent="Her şeyi ver";g2.onclick=function(){give({coins:1e9,dia:500,ruby:100,idr:5,all:true})};r4.appendChild(g2);
- var g3=document.createElement("button");g3.className="btn2 g";g3.style.color="var(--bad)";g3.textContent="Hesabı sil";
- g3.onclick=function(){who(function(u){if(u.id==UID)return toast("Kendi hesabını silemezsin");if(confirm((u.nick||"Oyuncu")+" hesabı oyundan silinsin mi?"))delAcct(u)})};r4.appendChild(g3);
+ var sr=row(p,"");var search=document.createElement("button");search.className="btn2";search.textContent="Oyuncuyu bul";search.onclick=function(){who()};sr.appendChild(search);
+ var tools=panel("💰 Kaynak yönetimi");
+ var fields={};
+ [["coins","🪙 Para"],["dia","💎 Elmas"],["ruby","🔴 Yakut"],["idr","🪪 ID hakkı"]].forEach(function(x){
+  var i=inp(x[1],"");i.type="number";i.min="0";i.style.flex="1";fields[x[0]]=i;row(tools,"").appendChild(i);
+ });
+ function grant(data){
+  if(!selected)return toast("Önce oyuncu seç.");
+  data.to=selected.id;data.ts=Date.now();
+  db.collection("grants").add(data).then(function(){toast("İşlem gönderildi: "+(selected.nick||"Oyuncu"))}).catch(function(){toast("İşlem başarısız. Firebase yetkilerini kontrol et.")});
+ }
+ var gr=row(tools,"");var give=document.createElement("button");give.className="btn2";give.textContent="Kaynakları gönder";give.onclick=function(){
+  var o={coins:Math.max(0,+fields.coins.value||0),dia:Math.max(0,+fields.dia.value||0),ruby:Math.max(0,+fields.ruby.value||0),idr:Math.max(0,+fields.idr.value||0)};
+  if(!o.coins&&!o.dia&&!o.ruby&&!o.idr)return toast("En az bir miktar gir.");grant(o);
+ };gr.appendChild(give);
+ var all=document.createElement("button");all.className="btn2";all.textContent="HER ŞEYİ VER";all.onclick=function(){
+  if(!confirm("Seçilen oyuncuya çok yüksek bakiye, tüm geliştirmeler, ekipmanlar ve malzemeler verilsin mi?"))return;
+  grant({coins:1000000000,dia:100000,ruby:100000,idr:100,all:true,unlockAll:true,
+   items:{iron_sword:99,ruby_blade:99,diamond_edge:99,guardian_helm:99,ruby_helm:99,iron_armor:99,crystal_armor:99,swift_boots:99,titan_boots:99,power_gloves:99,ruby_gloves:99,war_ring:99,diamond_ring:99,life_amulet:99,storm_charm:99,wood_shield:99,iron_shield:99,phoenix_cape:99,shadow_cloak:99,focus_rune:99,fortress_rune:99,hunter_badge:99,champion_badge:99,frost_orb:99,flame_orb:99,storm_spear:99,dragon_scale:99,void_mask:99,royal_crown:99,guardian_totem:99},
+   materials:{wood:99999,iron:99999,leather:99999,cloth:99999,crystal:99999,ruby_shard:99999,diamond_shard:99999}});
+ };gr.appendChild(all);
+ var adminOps=panel("🔨 Hesap işlemleri");
+ function actionButton(label,fn,danger){
+  var b=document.createElement("button");b.className="btn2"+(danger?" g":"");b.textContent=label;if(danger)b.style.color="var(--bad)";b.onclick=fn;adminOps.appendChild(b);return b;
+ }
+ actionButton("🚫 Hesabı banla",function(){
+  if(!selected)return toast("Önce oyuncu seç.");if(selected.id===UID)return toast("Kendi hesabını banlayamazsın.");
+  if(!confirm((selected.nick||"Oyuncu")+" kalıcı olarak banlansın mı?"))return;
+  db.doc("banned/"+selected.id).set({ts:Date.now(),by:UID,reason:"Admin tarafından banlandı"}).then(function(){toast("Hesap banlandı.")}).catch(function(){toast("Ban başarısız.")});
+ },true);
+ actionButton("✅ Banı kaldır",function(){
+  if(!selected)return toast("Önce oyuncu seç.");
+  db.doc("banned/"+selected.id).delete().then(function(){toast("Ban kaldırıldı.")}).catch(function(){toast("Ban kaldırılamadı.")});
+ });
+ actionButton("🧹 Oyuncu kaydını sıfırla",function(){
+  if(!selected)return toast("Önce oyuncu seç.");if(selected.id===UID)return toast("Kendi kaydını buradan sıfırlama.");
+  if(!confirm((selected.nick||"Oyuncu")+" oyuncusunun bulut kaydı tamamen sıfırlansın mı?"))return;
+  db.doc("saves/"+selected.id).delete().then(function(){toast("Bulut kaydı silindi. Oyuncu yeniden başladığında sıfır kayıt oluşturulur.")}).catch(function(){toast("Kayıt silinemedi.")});
+ },true);
+ actionButton("🗑️ Hesabı banla ve oyuncu kaydını sil",function(){
+  if(!selected)return toast("Önce oyuncu seç.");if(selected.id===UID)return toast("Kendi hesabını silemezsin.");
+  if(!confirm((selected.nick||"Oyuncu")+" banlansın ve bulut kaydı silinsin mi? Bu işlem geri alınamaz."))return;
+  Promise.all([db.doc("banned/"+selected.id).set({ts:Date.now(),by:UID,reason:"Admin tarafından silindi"}),db.doc("players/"+selected.id).delete(),db.doc("saves/"+selected.id).delete()]).then(function(){toast("Hesap engellendi ve oyun kaydı silindi.")}).catch(function(){toast("Hesap işlemi tamamlanamadı.")});
+ },true);
+ var note=panel("ℹ️ Yönetici notu");
+ note.innerHTML+='<div class="small">Ban, oyuncunun UID kayıtlı hesabını engeller. “Kaydı sıfırla” bulut ilerlemesini siler; “hesabı sil” ise oyuncu listesini ve kaydı silip ban ekler. Firebase Authentication hesabı bu panelden silinmez.</div>';
 }
 
 // DÜELLO EKRANI

@@ -34,7 +34,7 @@ var gear=[
 ].map(function(a){return{id:a[0],ico:a[1],name:a[2],slot:a[3],atk:a[4],def:a[5],recipe:a[6]}});
 
 var mats={wood:["🪵","Odun"],iron:["⛓️","Demir"],leather:["🟫","Deri"],cloth:["🧵","Kumaş"],crystal:["🔮","Kristal"],ruby_shard:["🔴","Yakut Parçası"],diamond_shard:["💎","Elmas Parçası"]};
-var modes=[1,2,3,4,5],oldShow=window.show,oldReward=window.duelReward;
+var modes=[1,2,3,4,5],oldShow=window.show,oldReward=window.duelReward,tabButtons=["forge","gear","market","arena"];
 function state(){
  S.inventory=S.inventory||{};S.materials=S.materials||{};S.equipped=S.equipped||{};
  S.listings=Array.isArray(S.listings)?S.listings:[];S.upgrades=S.upgrades||{};

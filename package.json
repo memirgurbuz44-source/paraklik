@@ -1,0 +1,26 @@
+
+{
+  "name": "paraklik",
+  "version": "1.0.0",
+  "description": "Paraklik Windows oyunu",
+  "main": "main.js",
+  "scripts": {
+    "build:win": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "^39.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "com.paraklik.game",
+    "productName": "Paraklik",
+    "files": [
+      "main.js",
+      "docs/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis"
+    }
+  }
+}

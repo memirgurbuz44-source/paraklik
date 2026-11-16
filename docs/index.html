@@ -310,15 +310,17 @@ function initFB(){
   if(!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);
   db=firebase.firestore();db.settings({experimentalForceLongPolling:true});
   firebase.auth().onAuthStateChanged(function(user){
+   if(user&&user.isAnonymous){
+    var guestUid=user.uid;
+    Promise.all([db.doc("players/"+guestUid).delete().catch(function(){}),db.doc("saves/"+guestUid).delete().catch(function(){})]).then(function(){
+     return user.delete().catch(function(){return firebase.auth().signOut()});
+    }).then(function(){UID=null;fbStartedUid=null;cloudReady=false;show()});
+    return;
+   }
    if(user){
     if(fbStartedUid===user.uid)return;
     UID=user.uid;fbStartedUid=user.uid;cloudReady=false;lastSent=S.total;startFB();
-   }else{
-    fbStartedUid=null;cloudReady=false;
-    firebase.auth().signInAnonymously().catch(function(e){
-     db=null;toast("Bağlantı kurulamadı: "+((e&&e.code)||""));show();
-    });
-   }
+   }else{UID=null;fbStartedUid=null;cloudReady=false;show()}
   });
  }catch(e){db=null;toast("Firebase başlatılamadı");show()}
 }
@@ -351,7 +353,8 @@ function subF(){
  });
 }
 function sync(){
- if(!db||!UID||banned)return;
+ var authUser=window.firebase&&firebase.auth&&firebase.auth().currentUser;
+ if(!db||!UID||!authUser||authUser.isAnonymous||banned)return;
  var d=Math.floor(S.total-lastSent);
  db.collection("players").doc(UID).set({nick:S.nick||"Oyuncu",nickLower:(S.nick||"Oyuncu").toLowerCase(),seen:Date.now(),code:S.code,clan:S.clan||"",total:Math.floor(S.total)},{merge:true}).catch(function(){});
  if(S.clan&&d>0){
@@ -660,17 +663,12 @@ function regAcct(em,pw){
  em=(em||"").trim();
  if(!em||!pw)return toast("E-posta ve şifre yaz.");
  if(pw.length<6)return toast("Şifre en az 6 karakter olmalı.");
- var u=firebase.auth().currentUser;
- if(!u)return toast("Firebase bağlantısı yok.");
- if(!u.isAnonymous)return toast("Bu hesap zaten kayıtlı.");
- var credential=firebase.auth.EmailAuthProvider.credential(em,pw);
- u.linkWithCredential(credential).then(function(c){
+ if(!db)return toast("Firebase bağlantısı yok.");
+ firebase.auth().createUserWithEmailAndPassword(em,pw).then(function(c){
   UID=c.user.uid;S.acct=em;save();
   var data=Object.assign({},S);delete data.acct;delete data._h;
   return db.doc("saves/"+UID).set({d:JSON.stringify(data),ts:Date.now()});
- }).then(function(){
-  cloudReady=true;toast("Hesabın oluşturuldu! Misafir ilerlemen korundu ✓");show();
- }).catch(function(e){toast(authErr(e))});
+ }).then(function(){cloudReady=true;toast("Hesabın oluşturuldu! ✓");location.reload()}).catch(function(e){toast(authErr(e))});
 }
 function loginAcct(em,pw){
  em=(em||"").trim();
@@ -705,12 +703,9 @@ function refreshAuth(){
  u.getIdToken(true).then(function(){toast("Oturum yenilendi ✓")}).catch(function(e){toast(authErr(e))});
 }
 function switchAccount(){
- if(!confirm("Hesaptan çıkıp başka bir hesaba geçmek istiyor musun? Bulut kaydın silinmez."))return;
- cloudSave().then(function(){
-  return firebase.auth().signOut();
- }).then(function(){
-  // Yerel kayıt korunur; Firebase misafir oturumu yeniden açar.
-  fbStartedUid=null;cloudReady=false;toast("Çıkış yapıldı. Yeni hesapla giriş yapabilirsin.");location.reload();
+ if(!confirm("Hesaptan çıkmak istiyor musun? Bulut kaydın silinmez."))return;
+ cloudSave().then(function(){return firebase.auth().signOut()}).then(function(){
+  UID=null;fbStartedUid=null;cloudReady=false;toast("Çıkış yapıldı.");location.reload();
  }).catch(function(){toast("Hesap değiştirilemedi.")});
 }
 function accountUI(){
@@ -721,7 +716,14 @@ function accountUI(){
   return;
  }
  if(!u){
-  p.innerHTML+='<div class="small">Hesap bilgisi yükleniyor...</div>';return;
+  row(p,'<div class="small">Misafir ilerlemesi yalnızca bu cihazda tutulur; sunucuya kaydedilmez. Çevrimiçi özellikler için hesap oluştur veya giriş yap.</div>');
+  var ge=inp("E-posta",""),gw=inp("Şifre (en az 6 karakter)","");
+  ge.type="email";gw.type="password";ge.style.flex="1";gw.style.flex="1";
+  row(p,'').appendChild(ge);row(p,'').appendChild(gw);
+  var gr=row(p,'');
+  var gb1=document.createElement("button");gb1.className="btn2";gb1.textContent="Hesap oluştur";gb1.onclick=function(){regAcct(ge.value,gw.value)};gr.appendChild(gb1);
+  var gb2=document.createElement("button");gb2.className="btn2 g";gb2.textContent="Giriş yap";gb2.onclick=function(){loginAcct(ge.value,gw.value)};gr.appendChild(gb2);
+  return;
  }
  if(!u.isAnonymous){
   row(p,'<div class="grow">E-posta</div><b>'+esc(u.email||"")+'</b>');

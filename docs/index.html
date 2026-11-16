@@ -883,23 +883,30 @@ setInterval(pushClicks,1000);
 setInterval(function(){if(cloudReady&&UID&&firebase.auth().currentUser&&!firebase.auth().currentUser.isAnonymous)cloudSave()},60000);
 
 // SÜRÜM KONTROLÜ
-var VERSION=11,LIVE="https://memirgurbuz44-source.github.io/paraklik/";
+var VERSION=12,LIVE="https://memirgurbuz44-source.github.io/paraklik/";
 function chkVer(){
- try{
-  fetch(LIVE+"version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(j){if(j&&j.v>VERSION)showUpd()}).catch(function(){});
- }catch(e){}
+ fetch(LIVE+"version.json?check="+Date.now(),{cache:"no-store"})
+  .then(function(r){if(!r.ok)throw new Error("version");return r.json()})
+  .then(function(j){if(j&&Number(j.v)>VERSION)showUpd()})
+  .catch(function(){});
 }
 function showUpd(){
  if(document.getElementById("upd"))return;
  var o=document.createElement("div");o.id="upd";
- o.style.cssText="position:fixed;inset:0;background:var(--bg);z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;text-align:center";
- o.innerHTML='<div style="font-size:48px">⬆️</div><div style="font-size:20px;font-weight:800">Yeni sürüm var</div><div class="small">Oynamaya devam etmek için oyunu güncellemelisin.</div>';
- var b=document.createElement("button");b.className="btn2";b.textContent="Güncelle";b.onclick=function(){location.href=LIVE+"?v="+Date.now()};
+ o.style.cssText="position:fixed;inset:0;background:var(--bg);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;text-align:center";
+ o.innerHTML='<div style="font-size:48px">⬆️</div><div style="font-size:20px;font-weight:800">Yeni sürüm var</div><div class="small">Yeni sürümü yüklemek için Güncelle butonuna bas.</div>';
+ var b=document.createElement("button");b.className="btn2";b.type="button";b.textContent="Güncelle";
+ b.addEventListener("click",function(){
+  b.disabled=true;b.textContent="Yükleniyor…";
+  var target=LIVE+"?refresh="+Date.now();
+  try{window.location.replace(target)}catch(e){window.location.href=target}
+  setTimeout(function(){try{window.location.assign(target)}catch(e){}},1200);
+ });
  o.appendChild(b);document.body.appendChild(o);
 }
-chkVer();setInterval(chkVer,300000);
+chkVer();setInterval(chkVer,60000);
 btn.textContent=SKINS[S.skin||0][0];show();initFB();
 </script>
-<script src="features.js"></script>
+<script src="features.js?v=12"></script>
 </body>
 </html>

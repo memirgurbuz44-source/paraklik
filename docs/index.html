@@ -813,18 +813,31 @@ function buildOverlay(){
  var o=document.getElementById("mo");
  if(!o){
   o=document.createElement("div");o.id="mo";
-  o.innerHTML='<div id="mtitle" style="font-size:28px;font-weight:900;letter-spacing:3px">⚔️ DÜELLO</div><div class="race"><div class="lane"><i id="lme"></i><span id="msa"></span></div><div class="lane op"><i id="lop"></i><span id="msb"></span></div></div><div id="mtimer" style="font-size:54px;font-weight:800"></div><button id="mbtn" tabindex="0">👆</button><div id="mres" style="font-size:20px;font-weight:700;min-height:28px"></div><button class="btn2" id="mclose" style="display:none">Tamam</button>';
+  o.innerHTML='<div id="mtitle" style="font-size:28px;font-weight:900;letter-spacing:3px">⚔️ TAKIM SAVAŞI</div><div class="race"><div class="lane"><i id="lme"></i><span id="msa"></span></div><div class="lane op"><i id="lop"></i><span id="msb"></span></div></div><div id="mtimer" style="font-size:54px;font-weight:900"></div><div id="teamBattle" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;width:min(760px,96vw);margin:12px auto"></div><div id="mres" style="font-size:20px;font-weight:700;min-height:28px"></div><button class="btn2" id="mclose" style="display:none">Tamam</button>';
   document.body.appendChild(o);
-  var duelButton=document.getElementById("mbtn");
-  duelButton.addEventListener("pointerdown",function(e){e.preventDefault();duelClick()});
-  duelButton.addEventListener("keydown",function(e){
-   if(e.repeat)return;
-   if(e.code=="Space"||e.code=="Enter"){e.preventDefault();duelClick()}
-  });
   document.getElementById("mclose").onclick=function(){closeMatch()};
  }
  o.className="on";document.getElementById("mclose").style.display="none";document.getElementById("mres").textContent="";
- setTimeout(function(){var b=document.getElementById("mbtn");if(b)b.focus()},50);
+}
+function renderTeamButtons(){
+ var host=document.getElementById("teamBattle");if(!host||!match||!match.d)return;
+ var d=match.d,teams=[d.ta||[],d.tb||[]],labels=["🔵 BİZİM TAKIM","🔴 RAKİP TAKIM"];
+ host.innerHTML="";
+ teams.forEach(function(team,side){
+  var col=document.createElement("div");
+  col.style.cssText="display:flex;flex-direction:column;gap:8px;padding:10px;border:2px solid "+(side?"#e05252":"#4388ff")+";border-radius:14px;background:rgba(30,35,45,.75)";
+  var h=document.createElement("b");h.textContent=labels[side];h.style.textAlign="center";col.appendChild(h);
+  team.forEach(function(uid,index){
+   var isMe=uid===UID,clicks=Math.min(match.s[uid]||0,600);
+   if(isMe)clicks=Math.max(clicks,mClicks);
+   var b=document.createElement("button");b.type="button";b.textContent=(d.names&&d.names[uid]||("Oyuncu "+(index+1)))+" · "+clicks+" tık";
+   b.style.cssText="min-height:54px;border-radius:10px;border:1px solid "+(side?"#e05252":"#4388ff")+";background:"+(isMe?"#263d60":"#252b35")+";color:white;font-weight:800;font-size:14px;touch-action:manipulation;opacity:"+(isMe?1:.88);
+   b.disabled=!isMe||Date.now()<match.st||Date.now()>=match.en;
+   if(isMe){b.textContent="👆 "+(d.names&&d.names[uid]||"Sen")+" · "+clicks+" tık";b.addEventListener("pointerdown",function(e){e.preventDefault();duelClick()});b.addEventListener("keydown",function(e){if(!e.repeat&&(e.code==="Space"||e.code==="Enter")){e.preventDefault();duelClick()}})}
+   col.appendChild(b);
+  });
+  host.appendChild(col);
+ });
 }
 function msum(arr){
  var t=0;arr.forEach(function(u){var v=Math.min(match.s[u]||0,600);if(u==UID)v=Math.max(v,mClicks);t+=v});return t;
@@ -833,10 +846,11 @@ function renderMatch(){
  if(!match||!match.d||!match.en)return;
  var d=match.d,t=Date.now(),mine=d.ta.indexOf(UID)>=0,my=mine?d.ta:d.tb,op=mine?d.tb:d.ta;
  var tm=document.getElementById("mtimer"),rs=document.getElementById("mres"),a=msum(my),b=msum(op),mx=Math.max(100,a,b),teamMode=Number(d.mode)>1;
- document.getElementById("msa").textContent=(teamMode?"Takımın: ":"Sen: ")+a;document.getElementById("msb").textContent=(teamMode?"Rakip takım: ":((d.names&&d.names[op[0]])||"Rakip")+": ")+b;
+ document.getElementById("msa").textContent=(teamMode?"Bizim takım: ":"Sen: ")+a;document.getElementById("msb").textContent=(teamMode?"Rakip takım: ":((d.names&&d.names[op[0]])||"Rakip")+": ")+b;
  document.getElementById("lme").style.width=Math.min(100,a/mx*100)+"%";document.getElementById("lop").style.width=Math.min(100,b/mx*100)+"%";
+ renderTeamButtons();
  if(t<match.st){tm.textContent=Math.ceil((match.st-t)/1000);rs.textContent="Hazır ol!";return}
- if(t<match.en){tm.textContent=Math.ceil((match.en-t)/1000)+" sn";rs.textContent="TIKLA!";return}
+ if(t<match.en){tm.textContent=Math.ceil((match.en-t)/1000)+" sn";rs.textContent="Sadece kendi takımındaki butonuna bas!";return}
  tm.textContent="Bitti";if(!match.fin){match.fin=1;pushClicks(1)}
  var all=my.concat(op).every(function(u){return u==UID||match.dn[u]});
  if(!all&&t<match.en+8000){rs.textContent="Sonuç bekleniyor…";return}

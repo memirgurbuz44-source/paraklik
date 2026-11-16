@@ -784,6 +784,31 @@ function delAcct(u){
 }
 function adminUI(){
  if(!isAdm||!db)return;
+ // Ek yönetici kodu kapısı. Firebase admins/{UID} kontrolü de zorunlu kalır.
+ var adminUnlocked=false;
+ try{adminUnlocked=sessionStorage.getItem("bw_admin_unlocked_"+UID)==="1"}catch(e){}
+ if(!adminUnlocked){
+  var gate=panel("🔐 Yönetici kodu");
+  var codeInput=inp("Admin kodunu gir","");
+  codeInput.type="password";codeInput.autocomplete="off";codeInput.style.width="100%";
+  gate.appendChild(codeInput);
+  var enter=row(gate,"");
+  var verify=document.createElement("button");verify.className="btn2";verify.textContent="Admin panelini aç";
+  verify.onclick=function(){
+   var value=codeInput.value;
+   if(!value)return toast("Admin kodunu gir.");
+   if(!window.crypto||!crypto.subtle)return toast("Bu tarayıcı güvenli kod kontrolünü desteklemiyor.");
+   crypto.subtle.digest("SHA-256",new TextEncoder().encode(value)).then(function(buf){
+    var hash=Array.from(new Uint8Array(buf)).map(function(x){return x.toString(16).padStart(2,"0")}).join("");
+    if(hash!=="d6da131aaf3946e38aa1f9a2d8aebe5d02372ee55ae6dc567a49812630bba1e7"){codeInput.value="";return toast("Admin kodu yanlış.")};
+    try{sessionStorage.setItem("bw_admin_unlocked_"+UID,"1")}catch(e){}
+    show();toast("Admin paneli açıldı.");
+   }).catch(function(){toast("Kod kontrolü yapılamadı.")});
+  };
+  enter.appendChild(verify);
+  row(gate,'<div class="small">Bu kod ek bir giriş kilididir. Yönetici UID yetkisi de gereklidir.</div>');
+  return;
+ }
  var p=panel("🛠️ Yönetici merkezi");
  row(p,'<div class="small">Oyuncu ara, hesabını yönet, kaynak ve eşyalarını düzenle. Bu işlemler oyunun Firebase verilerine uygulanır.</div>');
  var t=inp("Oyuncu adı veya oyuncu ID","");t.style.flex="1";row(p,'').appendChild(t);

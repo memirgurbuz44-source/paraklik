@@ -106,7 +106,7 @@ function sellItem(it,currency){
  S.inventory[it.id]--;S.marketStats.sold++;S.marketStats.earned+=currency==="coin"?value:marketValue(it);
  save();show();toast(it.name+" satıldı!");
 }
-var pmUn=[],pmReady=false,pmListings=[],pmTrades=[];
+var pmUn=[],pmReady=false,pmListings=[],pmTrades=[],pmClock=null;
 function settleEndedAuctions(){
  if(!db||!UID)return;
  pmListings.forEach(function(x){
@@ -158,7 +158,7 @@ function pmWatch(){
 }
 function pmDraw(){
  if(tab!=="market")return;var host=document.getElementById("content");if(!host)return;
- var old=document.getElementById("pm-live");if(old)old.remove();
+ if(pmClock){clearInterval(pmClock);pmClock=null;}var old=document.getElementById("pm-live");if(old)old.remove();
  var root=document.createElement("div");root.id="pm-live";host.appendChild(root);
  function panel(t){var p=document.createElement("div");p.className="panel";p.innerHTML="<h3>"+t+"</h3>";root.appendChild(p);return p}
  function row(p,h){var r=document.createElement("div");r.className="row";r.innerHTML=h;p.appendChild(r);return r}
@@ -178,16 +178,16 @@ function pmDraw(){
   };r.appendChild(b);
  });
  var board=panel("🔨 AÇIK ARTIRMA PAZARI");
- var active=pmListings.filter(function(x){return x.status==="active"&&x.sellerId!==UID&&(x.listingType!=="auction"||Date.now()<Number(x.endsAt||0))});
+ var active=pmListings.filter(function(x){return x.status==="active"&&x.sellerId!==UID&&(x.listingType!=="auction"||Date.now()<Number(x.endsAt||0))}).sort(function(a,b){if(a.listingType==="auction"&&b.listingType==="auction")return Number(a.endsAt)-Number(b.endsAt);if(a.listingType==="auction")return -1;if(b.listingType==="auction")return 1;return Number(b.created||0)-Number(a.created||0)});
  if(!active.length)row(board,'<div class="small">Şu anda aktif başka oyuncu ilanı yok.</div>');
  active.forEach(function(x){
   var auction=x.listingType==="auction",shown=auction?Number(x.currentBid||x.price):Number(x.price),currency={coins:"🪙",ruby:"🔴",dia:"💎"}[x.currency]||"";
-  var r=row(board,'<div class="grow">'+(x.ico||"🎁")+' <b>'+esc(String(x.itemName||"Eşya"))+'</b><div class="small">Satıcı: '+esc(String(x.sellerName||"Oyuncu"))+'</div>'+(auction?'<div class="small">⏳ '+Math.max(0,Math.ceil((Number(x.endsAt)-Date.now())/3600000))+' saat kaldı · '+(x.bidCount||0)+' teklif · En yüksek: '+esc(String(x.topBidderName||"Henüz teklif yok"))+'</div>':'')+'</div><b>'+fmt(shown)+' '+currency+'</b>');
+  var r=row(board,'<div class="grow">'+(x.ico||"🎁")+' <b>'+esc(String(x.itemName||"Eşya"))+'</b><div class="small">Satıcı: '+esc(String(x.sellerName||"Oyuncu"))+'</div>'+(auction?'<div class="small">⏳ <span class="auction-countdown" data-ends="'+Number(x.endsAt)+'">Hesaplanıyor...</span> · '+(x.bidCount||0)+' teklif · En yüksek: '+esc(String(x.topBidderName||"Henüz teklif yok"))+'</div>':'')+'</div><b>'+fmt(shown)+' '+currency+'</b>');
   var btn=document.createElement("button");btn.className="btn2";btn.textContent=auction?"Teklif ver":"Satın al";btn.onclick=function(){
    if(auction){
     if(Date.now()>=Number(x.endsAt||0))return toast("Açık artırma sona ermiş.");
-    var offer=Number(prompt("Mevcut teklif: "+shown+" "+currency+". Daha yüksek teklifini gir:",String(shown+1)));
-    if(!Number.isSafeInteger(offer)||offer<=shown)return toast("Teklif mevcut fiyattan yüksek olmalı.");
+    var minOffer=shown+Math.max(1,Math.ceil(shown*0.05));var offer=Number(prompt("Mevcut teklif: "+fmt(shown)+" "+currency+"\nEn az %5 artırmalısın. Minimum teklif: "+fmt(minOffer),String(minOffer)));
+    if(!Number.isSafeInteger(offer)||offer<minOffer)return toast("Teklif en az "+fmt(minOffer)+" olmalı.");
     if((S[x.currency]||0)<offer)return toast("Teklif tutarı kadar bakiyen olmalı.");
     db.runTransaction(function(tx){var ref=db.doc("playerMarket/"+x.id);return tx.get(ref).then(function(snap){var v=snap.data()||{};if(v.status!=="active"||Date.now()>=Number(v.endsAt||0)||offer<=Number(v.currentBid||v.price))throw new Error("Teklif artık geçerli değil; pazarı yenile.");tx.update(ref,{currentBid:offer,topBidderId:UID,topBidderName:S.nick||"Oyuncu",bidCount:Number(v.bidCount||0)+1});});}).then(function(){toast("Teklifin kaydedildi. Süre bitince en yüksek teklif kazanır.");}).catch(function(e){toast(e.message||"Teklif gönderilemedi.");});return;
    }
@@ -210,7 +210,7 @@ function pmDraw(){
    };mine.lastChild.appendChild(back);
   }
  });
- var req=panel("📨 SABİT FİYAT SATIŞ İSTEKLERİ"),pending=pmTrades.filter(function(t){return t.status==="pending"&&t.sellerId===UID&&!t.auction});
+ pmClock=setInterval(function(){var now=Date.now();root.querySelectorAll(".auction-countdown").forEach(function(el){var ms=Math.max(0,Number(el.getAttribute("data-ends"))-now),sec=Math.floor(ms/1000),h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),ss=sec%60;el.textContent=ms<=0?"Süre doldu":(h+"s "+m+"d "+ss+"sn");});},1000);\n var req=panel("📨 SABİT FİYAT SATIŞ İSTEKLERİ"),pending=pmTrades.filter(function(t){return t.status==="pending"&&t.sellerId===UID&&!t.auction});
  if(!pending.length)row(req,'<div class="small">Bekleyen sabit fiyat isteği yok.</div>');
  pending.forEach(function(t){
   var r=row(req,'<div class="grow"><b>'+esc(String(t.itemName||"Eşya"))+'</b><div class="small">'+esc(String(t.buyerName||"Oyuncu"))+' · '+fmt(t.price)+' '+({coins:"🪙",ruby:"🔴",dia:"💎"}[t.currency]||"")+'</div></div>');

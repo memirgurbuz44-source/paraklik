@@ -104,6 +104,45 @@ input{background:#0a1220;border-color:#344663}
 @media(max-width:420px){.top{border-radius:18px;padding:16px 12px}.stage{border-radius:20px;min-height:280px}.tabs button{padding:9px 12px;font-size:13px}.item{padding:11px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 
+
+/* DUEL ARENA 3D + MOBILE SAFE LAYOUT */
+#content,.panel,.duel-screen{min-width:0;max-width:100%}
+.row{min-width:0;flex-wrap:wrap}
+.row .grow{flex:1 1 140px;min-width:0;white-space:normal;overflow-wrap:anywhere}
+.row>.btn2{flex:0 1 auto;max-width:100%;white-space:normal}
+.duel-screen{position:relative;overflow:hidden;padding:clamp(12px,3vw,20px);background:linear-gradient(150deg,#172a48 0%,#101a2d 48%,#0b1220 100%);border-color:#52709a;box-shadow:0 12px 32px #0007,inset 0 1px #ffffff18}
+.duel-hero{height:184px;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;border:1px solid #6286b855;border-radius:20px;background:radial-gradient(ellipse at 50% 45%,#284d7a 0%,#172b4b 48%,#0b1425 100%);perspective:700px;transform-style:preserve-3d;box-shadow:inset 0 0 35px #0008,0 10px 20px #0005}
+.duel-orbit{position:absolute;width:160px;height:160px;border:2px solid #8bc7ff88;border-radius:50%;transform:rotateX(68deg) rotateZ(-25deg);box-shadow:0 0 18px #50aaff44}
+.duel-orbit-a{animation:duelOrbit 9s linear infinite}
+.duel-orbit-b{width:205px;height:205px;border-color:#ffc85c66;transform:rotateX(68deg) rotateZ(35deg);animation:duelOrbit 13s linear infinite reverse}
+.duel-crystal{z-index:1;font-size:44px;line-height:1.3;text-shadow:0 0 12px #8bc7ff,0 8px 20px #000;transform:translateZ(28px);filter:drop-shadow(0 8px 8px #0008)}
+.duel-hero-title{z-index:1;font-weight:1000;letter-spacing:.12em;font-size:clamp(15px,4vw,20px);text-shadow:0 3px 12px #000}
+.duel-hero-sub{z-index:1;color:#c2d8f5;font-size:12px;text-align:center;margin-top:5px}
+@keyframes duelOrbit{to{transform:rotateX(68deg) rotateZ(335deg)}}
+.duel-section-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:18px 2px 9px;color:#f5d58a;font-size:12px;letter-spacing:.1em}
+.duel-section-head span{color:#9fb4d2;letter-spacing:0;font-size:11px;text-align:right}
+.duel-modes{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px}
+.duel-mode{min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px 3px;border:1px solid #6684aa66;border-radius:13px;background:linear-gradient(150deg,#304c70,#14243b);color:#fff;font:inherit;box-shadow:0 5px 0 #08111f,0 9px 14px #0005;cursor:pointer;transition:transform .15s,border-color .15s}
+.duel-mode:active{transform:translateY(3px);box-shadow:0 2px 0 #08111f}
+.duel-mode-icon{font-size:21px}.duel-mode b{font-size:14px}.duel-mode small{font-size:9px;color:#b7c9e2;text-align:center}
+.duel-random{display:flex;align-items:center;gap:12px;width:100%;min-width:0;margin-top:14px;padding:13px 15px;border:1px solid #e8b64b;border-radius:14px;background:linear-gradient(120deg,#ffe08b,#d88a16);color:#211707;text-align:left;font:inherit;box-shadow:0 5px 0 #87540c,0 10px 18px #0005;cursor:pointer}
+.duel-random>span:first-child{font-size:26px}.duel-random>span:nth-child(2){display:flex;flex:1;min-width:0;flex-direction:column}.duel-random small{font-size:11px;opacity:.75}.duel-arrow{font-size:28px}
+.duel-player-list,.duel-friends,.duel-status-list{display:flex;flex-direction:column;gap:7px;min-width:0}
+.duel-player-card,.duel-status-card{display:flex;align-items:center;gap:9px;min-width:0;max-width:100%;padding:10px;border:1px solid #50698a66;border-radius:13px;background:linear-gradient(130deg,#1e304a,#121d30);box-shadow:0 4px 10px #0003}
+.duel-player-info{display:flex;align-items:center;gap:9px;flex:1 1 100px;min-width:0}
+.duel-avatar{flex:0 0 34px;width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:#38577b;font-size:18px}
+.duel-player-name{display:flex;flex-direction:column;min-width:0;overflow-wrap:anywhere;font-weight:800;font-size:13px}
+.duel-player-name small{font-weight:500;color:#9fb4d2;font-size:10px}
+.duel-challenge,.duel-cancel{flex:0 1 auto;min-width:0;max-width:100%;padding:9px 11px;border:0;border-radius:10px;background:linear-gradient(135deg,#ffe08a,#dc951c);color:#211707;font:inherit;font-size:12px;font-weight:900;white-space:normal;overflow-wrap:anywhere;cursor:pointer}
+.duel-cancel{background:#263850;border:1px solid #58708f;color:#d4e2f6}
+.duel-status-card>span{flex:1 1 130px;min-width:0;overflow-wrap:anywhere;font-size:12px}
+.duel-empty{padding:14px;border:1px dashed #58708f;border-radius:12px;color:#b6c7df;font-size:12px;text-align:center;background:#101b2b}
+.duel-status-list,.duel-friends{margin-top:15px}
+@media(max-width:420px){
+ .duel-hero{height:160px}.duel-modes{gap:5px}.duel-mode{padding:9px 1px}.duel-mode-icon{font-size:18px}.duel-mode b{font-size:12px}.duel-mode small{font-size:8px}
+ .duel-player-card,.duel-status-card{flex-wrap:wrap}.duel-player-info{flex-basis:100%}.duel-challenge,.duel-cancel{flex:1 1 100%;width:100%}
+}
+@media(prefers-reduced-motion:reduce){.duel-orbit{animation:none}}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -750,43 +789,59 @@ function rndDuel(skip){
  }).catch(function(e){console.error("Button Wars random duel search failed:",e);var code=e&&e.code?e.code:"unknown";var msg=code==="permission-denied"?"Firestore okuma izni reddedildi":code==="unauthenticated"?"Oturum açılmamış":code==="unavailable"?"Firebase bağlantısı kurulamadı":code==="failed-precondition"?"Firestore sorgusu/indeksi hatalı":"Beklenmeyen Firebase hatası";toast("Rakip arama: "+msg+" ("+code+")")});
 }
 function drawDuel(){
- duels.in.forEach(function(d){
-  var p=panel("⚔️ Düello isteği"),r=row(p,'<div class="grow">'+esc(d.fromName)+' seninle düello yapmak istiyor</div>',"Kabul",function(){acceptDuel(d)});
-  var b=document.createElement("button");b.className="btn2 g";b.textContent="Reddet";b.onclick=function(){declineDuel(d)};r.appendChild(b);
+ var p=panel("⚔️ DÜELLO ARENASI");
+ p.classList.add("duel-screen");
+ var hero=document.createElement("div");hero.className="duel-hero";
+ hero.innerHTML='<div class="duel-orbit duel-orbit-a"></div><div class="duel-orbit duel-orbit-b"></div><div class="duel-crystal">⚔️</div><div class="duel-hero-title">SAVAŞA HAZIR MISIN?</div><div class="duel-hero-sub">Rakibini seç · Takımını kur · Arenaya gir</div>';
+ p.appendChild(hero);
+ var intro=document.createElement("div");intro.className="duel-section-head";intro.innerHTML='<b>TAKIM MODLARI</b><span>1v1 – 5v5</span>';p.appendChild(intro);
+ var modes=document.createElement("div");modes.className="duel-modes";p.appendChild(modes);
+ [1,2,3,4,5].forEach(function(n){
+  var b=document.createElement("button");b.className="duel-mode";b.innerHTML='<span class="duel-mode-icon">'+(n===1?'⚔️':n===2?'🛡️':n===3?'🔥':n===4?'💎':'👑')+'</span><b>'+n+'v'+n+'</b><small>'+(n===1?'Bire bir':n+' kişilik takım')+'</small>';b.onclick=function(){startTeamDuel(n)};modes.appendChild(b);
  });
- var p=panel("⚔️ DÜELLO");
- row(p,'<div class="small">Takımını sistem otomatik kurar. Herkes 30 saniye boyunca butona basar; en çok toplam tıklama yapan takım kazanır.</div>');
- [1,2,3,4,5].forEach(function(n){var b=document.createElement("button");b.className="btn2";b.textContent=n+"v"+n+" Takım Düellosu";b.onclick=function(){startTeamDuel(n)};p.appendChild(b)});
- var rb=document.createElement("button");rb.className="rnd";rb.textContent="🎲 RASTGELE RAKİP";rb.onclick=function(){rndDuel()};p.appendChild(rb);
- row(p,'<div class="small">Oyuncu listesinden bir isme dokun, ardından ⚔️ Düello düğmesine bas. Kabul ederse 30 saniyelik tıklama yarışı başlar. Kazanan 5 🔴 yakut alır (günde en fazla 5 ödüllü galibiyet).</div>');
- var box=document.createElement("div");p.appendChild(box);
- var duelPlayers=(players||[]).filter(function(x){return x.id&&x.id!=UID;});
+ var rb=document.createElement("button");rb.className="duel-random";rb.innerHTML='<span>🎲</span><span><b>RASTGELE RAKİP BUL</b><small>Uygun bir oyuncuyla eşleş</small></span><span class="duel-arrow">›</span>';rb.onclick=function(){rndDuel()};p.appendChild(rb);
+ var listHead=document.createElement("div");listHead.className="duel-section-head";listHead.innerHTML='<b>OYUNCU LİSTESİ</b><span>İsme göre seç</span>';p.appendChild(listHead);
+ var box=document.createElement("div");box.className="duel-player-list";p.appendChild(box);
+ var duelPlayers=(players||[]).filter(function(x){return x.id&&x.id!=UID});
  duelPlayers.sort(function(a,b){return String(a.nick||"").localeCompare(String(b.nick||""),"tr")});
  if(leaderboardStatus==="loading"){
-  box.innerHTML='<div class="small">Oyuncu listesi yükleniyor…</div>';
+  box.innerHTML='<div class="duel-empty">⏳ Oyuncular yükleniyor…</div>';
  }else if(leaderboardStatus==="error"){
-  box.innerHTML='<div class="small">Oyuncu listesi alınamadı. Firebase Firestore kurallarında players koleksiyonuna giriş yapmış kullanıcıların okuma izni olmalı.</div>';
+  box.innerHTML='<div class="duel-empty">Oyuncu listesi alınamadı. Firestore players okuma iznini kontrol et.</div>';
  }else if(!duelPlayers.length){
-  box.innerHTML='<div class="small">Henüz listelenecek başka oyuncu yok.</div>';
+  box.innerHTML='<div class="duel-empty">Şu anda listede başka oyuncu yok.</div>';
  }else{
-  row(box,'<div class="small">Oyuncular ('+duelPlayers.length+')</div>');
   duelPlayers.forEach(function(x){
-   var rr=row(box,'<div class="grow">👤 '+esc(x.nick||"Oyuncu")+'<div class="small">ID: '+esc(x.code||"-")+'</div></div>');
-   var c=document.createElement("button");c.className="btn2";c.textContent="⚔️ Düello";c.onclick=function(){sendDuel(x)};rr.appendChild(c);
+   var card=document.createElement("div");card.className="duel-player-card";
+   var info=document.createElement("div");info.className="duel-player-info";info.innerHTML='<span class="duel-avatar">👤</span><span class="duel-player-name">'+esc(x.nick||"Oyuncu")+'<small>ID: '+esc(x.code||"-")+'</small></span>';
+   var c=document.createElement("button");c.className="duel-challenge";c.textContent="⚔ Düello";c.onclick=function(){sendDuel(x)};
+   card.appendChild(info);card.appendChild(c);box.appendChild(card);
   });
  }
- duels.out.filter(function(d){return d.status=="pending"}).forEach(function(d){
-  var rr=row(p,'<div class="grow">⏳ '+esc(d.toName)+' cevap bekleniyor</div>');
-  var c=document.createElement("button");c.className="btn2 g";c.textContent="İptal";c.onclick=function(){declineDuel(d)};rr.appendChild(c);
- });
- var pf=panel("👥 Arkadaşına meydan oku");
- if(!friends.length)pf.innerHTML+='<div class="small">Önce Arkadaş sekmesinden arkadaş ekle.</div>';
+ var pending=duels.out.filter(function(d){return d.status==="pending"});
+ if(pending.length){
+  var out=document.createElement("div");out.className="duel-status-list";out.innerHTML='<div class="duel-section-head"><b>GÖNDERİLEN İSTEKLER</b><span>'+pending.length+'</span></div>';p.appendChild(out);
+  pending.forEach(function(d){
+   var r=document.createElement("div");r.className="duel-status-card";r.innerHTML='<span>⏳ '+esc(d.toName||"Oyuncu")+' cevap bekleniyor</span>';
+   var c=document.createElement("button");c.className="duel-cancel";c.textContent="İptal";c.onclick=function(){declineDuel(d)};r.appendChild(c);out.appendChild(r);
+  });
+ }
+ if(duels.in.length){
+  var incoming=document.createElement("div");incoming.className="duel-status-list";incoming.innerHTML='<div class="duel-section-head"><b>GELEN DÜELLO İSTEKLERİ</b><span>'+duels.in.length+'</span></div>';p.appendChild(incoming);
+  duels.in.forEach(function(d){
+   var r=document.createElement("div");r.className="duel-status-card";r.innerHTML='<span>⚔️ '+esc(d.fromName||"Oyuncu")+' meydan okuyor</span>';
+   var yes=document.createElement("button");yes.className="duel-challenge";yes.textContent="Kabul";yes.onclick=function(){acceptDuel(d)};
+   var no=document.createElement("button");no.className="duel-cancel";no.textContent="Reddet";no.onclick=function(){declineDuel(d)};
+   r.appendChild(yes);r.appendChild(no);incoming.appendChild(r);
+  });
+ }
+ var pf=document.createElement("div");pf.className="duel-friends";var fh=document.createElement("div");fh.className="duel-section-head";fh.innerHTML='<b>ARKADAŞLAR</b><span>Hızlı meydan okuma</span>';pf.appendChild(fh);p.appendChild(pf);
+ if(!friends.length){var nof=document.createElement("div");nof.className="duel-empty";nof.textContent="Henüz arkadaşın yok. Önce Arkadaşlar bölümünden ekleyebilirsin.";pf.appendChild(nof)}
  friends.forEach(function(f){
-  var rr=row(pf,'<div class="grow">'+esc(f.nick||"Oyuncu")+'</div>');
-  var c=document.createElement("button");c.className="btn2";c.textContent="⚔️ Düello";c.onclick=function(){sendDuel(f)};rr.appendChild(c);
+  var r=document.createElement("div");r.className="duel-player-card";var info=document.createElement("div");info.className="duel-player-info";info.innerHTML='<span class="duel-avatar">🤝</span><span class="duel-player-name">'+esc(f.nick||"Oyuncu")+'</span>';
+  var c=document.createElement("button");c.className="duel-challenge";c.textContent="⚔ Düello";c.onclick=function(){sendDuel(f)};r.appendChild(info);r.appendChild(c);pf.appendChild(r);
  });
 }
-
 // ELMAŞ FİYATI
 function dprice(){return Math.max(2000,Math.ceil(ps()*90+pc()*60))}
 function dleft(){var d=Math.floor(Date.now()/864e5);if(S.dday!=d){S.dday=d;S.dn=0}return 30-S.dn}

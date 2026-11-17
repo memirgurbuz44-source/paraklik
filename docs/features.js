@@ -61,13 +61,22 @@ function btnTab(name,label){
 }
 function materialText(){return Object.keys(mats).map(function(k){return mats[k][0]+" "+mats[k][1]+": "+(S.materials[k]||0)}).join(" · ")}
 function drawForge(){
- var p=panelX("🧰 Malzemelerin");line(p,'<div class="small">'+materialText()+'</div>');
+ var p=panelX("🛠️ CRAFT ATÖLYESİ");
+ line(p,'<div class="small">Savaşlardan topladığın malzemelerle silah, zırh ve özel eşyalar üret. Üretilen eşyalar doğrudan envanterine eklenir.</div>');
+ var matsPanel=panelX("📦 MALZEME DEPOSU");
+ Object.keys(mats).forEach(function(k){
+  var r=document.createElement("div");r.className="row";
+  r.innerHTML='<div class="grow">'+mats[k][0]+' <b>'+mats[k][1]+'</b></div><b>× '+(S.materials[k]||0)+'</b>';
+  matsPanel.appendChild(r);
+ });
+ var title=panelX("📜 ÜRETİM TARİFLERİ");
+ line(title,'<div class="small">Malzemen yetiyorsa ÜRET düğmesine bas. Eksik malzemeli tarifler de listede görünür.</div>');
  var l=document.createElement("div");l.className="list";document.getElementById("content").appendChild(l);
  gear.forEach(function(it){
-  var can=hasRecipe(it.recipe),req=Object.keys(it.recipe).map(function(k){return mats[k][0]+" "+it.recipe[k]}).join(" · ");
+  var can=hasRecipe(it.recipe),req=Object.keys(it.recipe).map(function(k){return mats[k][0]+" "+mats[k][1]+" ×"+it.recipe[k]+" (sende "+(S.materials[k]||0)+")"}).join(" · ");
   var b=document.createElement("button");b.className="item";b.disabled=!can;
-  b.innerHTML='<div class="ico">'+it.ico+'</div><div class="info"><div class="name">'+it.name+'</div><div class="desc">'+req+'</div><div class="own">Saldırı +'+it.atk+' · Savunma +'+it.def+'</div></div><div class="cost">'+(can?"Üret":"Eksik")+'</div>';
-  b.onclick=function(){if(!hasRecipe(it.recipe))return;spendRecipe(it.recipe);S.inventory[it.id]=(S.inventory[it.id]||0)+1;save();show();toast(it.name+" üretildi!")};
+  b.innerHTML='<div class="ico">'+it.ico+'</div><div class="info"><div class="name">'+it.name+'</div><div class="desc">'+req+'</div><div class="own">⚔️ Saldırı +'+it.atk+' · 🛡️ Savunma +'+it.def+'</div></div><div class="cost">'+(can?"🛠️ ÜRET":"🔒 EKSİK")+'</div>';
+  b.onclick=function(){if(!hasRecipe(it.recipe))return;spendRecipe(it.recipe);S.inventory[it.id]=(S.inventory[it.id]||0)+1;save();show();toast(it.name+" üretildi ve envanterine eklendi!")};
   l.appendChild(b);
  });
 }
@@ -208,7 +217,7 @@ window.show=function(){
   if(tab==="forge")drawForge();if(tab==="gear")drawGear();
   if(tab==="market")drawMarketX();if(tab==="arena")drawArena();
  }
- var labels={forge:"🧰 Üretim",gear:"🎒 Ekipman",market:"🛒 Pazar",arena:"⚔️ Takımlı Bot"};
+ var labels={forge:"🛠️ Craft",gear:"🎒 Ekipman",market:"🛒 Pazar",arena:"⚔️ Takımlı Bot"};
  tabButtons.forEach(function(t){
   if(!Array.from(document.getElementById("tabs").children).some(function(b){return b.textContent===labels[t]}))btnTab(t,labels[t]);
  });
